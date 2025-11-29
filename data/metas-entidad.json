@@ -1,0 +1,45 @@
+[
+    {
+        "id": "0012",
+        "nombre": "0012 - Gestion de Abastecimiento y Servicios Generales",
+        "unidad": "Unidad de Abastecimiento y Servicios Generales",
+        "actividades": [
+            { "id": "AO_01", "nombre": "AO 01 - Adquisicion de bienes y servicios" },
+            { "id": "AO_02", "nombre": "AO 02 - Gestion de almacenes y distribucion" },
+            { "id": "AO_03", "nombre": "AO 03 - Mantenimiento de infraestructura" },
+            { "id": "AO_04", "nombre": "AO 04 - Servicios generales y apoyo logistico" }
+        ]
+    },
+    {
+        "id": "0025",
+        "nombre": "0025 - Gestion de Recursos Humanos",
+        "unidad": "Unidad de Recursos Humanos",
+        "actividades": [
+            { "id": "AO_01", "nombre": "AO 01 - Reclutamiento y seleccion de personal" },
+            { "id": "AO_02", "nombre": "AO 02 - Capacitacion y desarrollo" },
+            { "id": "AO_03", "nombre": "AO 03 - Gestion de planillas" },
+            { "id": "AO_04", "nombre": "AO 04 - Bienestar social" }
+        ]
+    },
+    {
+        "id": "0038",
+        "nombre": "0038 - Tecnologias de la Informacion",
+        "unidad": "Oficina General de Tecnologias de la Informacion",
+        "actividades": [
+            { "id": "AO_01", "nombre": "AO 01 - Desarrollo de sistemas informaticos" },
+            { "id": "AO_02", "nombre": "AO 02 - Soporte tecnico y mantenimiento" },
+            { "id": "AO_03", "nombre": "AO 03 - Seguridad informatica" },
+            { "id": "AO_04", "nombre": "AO 04 - Infraestructura tecnologica" },
+            { "id": "AO_05", "nombre": "AO 05 - Transformacion digital" }
+        ]
+    },
+    {
+        "id": "0041",
+        "nombre": "0041 - Gestion Documentaria y Archivo",
+        "unidad": "Oficina de Gestion Documental",
+        "actividades": [
+            { "id": "AO_01", "nombre": "AO 01 - Tramite documentario" },
+            { "id": "AO_02", "nombre": "AO 02 - Archivo central" }
+        ]
+    }
+]

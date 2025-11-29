@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente de Requerimientos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Asistente de Requerimientos</h1>
+    <div id="app-container">
+        <div id="initial-conditions-form">
+            <h2>Seleccione las Condiciones Iniciales</h2>
+            <form id="conditionsForm">
+                <div class="form-group">
+                    <label>Tipo de Contratación:</label>
+                    <div>
+                        <input type="radio" id="typeService" name="contractType" value="Servicio">
+                        <label for="typeService">Servicio</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="typeGood" name="contractType" value="Bien">
+                        <label for="typeGood">Bien</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="estimatedAmount">Monto Estimado (S/):</label>
+                    <input type="number" id="estimatedAmount" name="estimatedAmount" min="0" step="0.01">
+                </div>
+
+                <div id="validationMessages" class="error-message"></div>
+
+                <button type="submit" id="nextButton">Siguiente</button>
+            </form>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
