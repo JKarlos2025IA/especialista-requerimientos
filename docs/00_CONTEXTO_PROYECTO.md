@@ -16,6 +16,23 @@
 
 **Nivel de complejidad:** Medio
 
+### URLs de produccion
+- **Repositorio GitHub:** https://github.com/JKarlos2025IA/especialista-requerimientos.git
+- **Usuario GitHub:** JKarlos2025IA
+
+### Git workflow
+```cmd
+# Guardar cambios
+git add .
+git commit -m "Descripcion del cambio"
+git push origin main
+
+# Ver estado
+git status
+```
+
+**PROTOCOLO CRITICO:** SIEMPRE hacer `git push` al finalizar sesion para evitar perder trabajo
+
 ---
 
 ## 🎯 CONTEXTO COMPLETO
