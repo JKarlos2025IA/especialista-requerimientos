@@ -893,3 +893,250 @@ else if (line && !line.startsWith('#') && !line.startsWith('**')) {
 **Ultima actualizacion:** 2025-01-30
 **Mantenedor:** Juan Montenegro
 **Proxima sesion:** TBD
+
+---
+
+## 📅 SESIÓN 05 - Búsqueda CUBSO y Cláusulas Personalizadas
+
+**Fecha:** 2025-01-30
+**Duración:** ~2 horas
+**Versión resultante:** 0.3.0
+
+### 🎯 Objetivo Principal
+
+Implementar búsqueda de servicios CUBSO, remover numeración de secciones y permitir agregar cláusulas personalizadas entre secciones.
+
+### ✅ Completado
+
+#### 1. Campo Item con búsqueda CUBSO
+- **Archivo modificado:** `app.js`
+- **Cambios:**
+  - Creada función `fetchServiciosData()` para cargar CSV de servicios
+  - CSV con 5,208 servicios CUBSO
+  - Nueva función helper `createDatalistInput()` para input con datalist HTML5
+  - Campo Item usa `<datalist>` para autocompletado
+  - Búsqueda dual: por código O por descripción
+  - Renombrado CSV: `CUBSO.xlsx - SERVICIOS.csv` → `CUBSO_SERVICIOS.csv` (sin espacios para Netlify)
+
+**Código relevante:**
+```javascript
+// app.js línea 236-217
+async function fetchServiciosData() {
+    const response = await fetch('data/CUBSO_SERVICIOS.csv');
+    const csvText = await response.text();
+    const lines = csvText.trim().split('\n');
+
+    allServiciosData = lines.slice(1).map(line => {
+        const [codigo, titulo] = line.split(',');
+        return { codigo: codigo?.trim(), titulo: titulo?.trim() };
+    }).filter(item => item.codigo && item.titulo);
+}
+```
+
+#### 2. Remover numeración de títulos
+- **Archivo modificado:** `app.js`, `vista_previa.html`
+- **Cambios:**
+  - En `app.js` línea 423: `section.title.replace(/^\d+\.\s*/, '')`
+  - En `vista_previa.html` línea 306: Eliminado `${info.num}.` de títulos
+  - Ahora títulos muestran solo texto sin "1.", "2.", etc.
+
+#### 3. Botones "+" entre secciones
+- **Archivo modificado:** `app.js`, `index.html`, `styles.css`
+- **Cambios:**
+  - Botón "+" insertado antes de cada sección (excepto primera)
+  - Atributo `data-insert-before` para identificar posición
+  - Estilos CSS para botón circular verde
+
+**Código relevante:**
+```javascript
+// app.js línea 407-415
+if (index > 0) {
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'btn-add-clause';
+    btnAdd.textContent = '+';
+    btnAdd.type = 'button';
+    btnAdd.setAttribute('data-insert-before', section.id);
+    formElement.appendChild(btnAdd);
+}
+```
+
+#### 4. Modal para cláusulas personalizadas
+- **Archivos modificados:** `index.html`, `styles.css`, `app.js`
+- **Cambios:**
+  - Modal HTML agregado en `index.html` (fuera de app-container)
+  - Estilos CSS para modal overlay y contenido
+  - Inputs: título de cláusula + textarea para contenido
+  - Botón "Agregar Cláusula" guarda y cierra modal
+
+**HTML del modal:**
+```html
+<div id="modalClausula" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Agregar Cláusula Personalizada</h3>
+        <input type="text" id="clausulaTitulo" placeholder="Ej: Base Legal">
+        <textarea id="clausulaContenido" rows="6"></textarea>
+        <button id="btnGuardarClausula">Agregar Cláusula</button>
+    </div>
+</div>
+```
+
+#### 5. Inserción dinámica de cláusulas
+- **Archivo modificado:** `app.js`
+- **Funcionalidad:**
+  - Click en "+" abre modal
+  - Usuario ingresa título + contenido
+  - Al guardar: genera ID único `custom_${timestamp}`
+  - Crea sección nueva con textarea
+  - Inserta ANTES de la sección correspondiente
+  - Guardada en array `clausulasPersonalizadas[]`
+
+**Código relevante:**
+```javascript
+// app.js línea 868-917
+btnGuardarClausula.addEventListener('click', () => {
+    const titulo = clausulaTituloInput.value.trim();
+    const contenido = clausulaContenidoInput.value.trim();
+
+    const clausulaId = `custom_${Date.now()}`;
+
+    clausulasPersonalizadas.push({
+        id: clausulaId,
+        titulo: titulo,
+        contenido: contenido,
+        insertBeforeId: insertBeforeId
+    });
+
+    // Crear sección y insertar en DOM
+    const customSection = document.createElement('div');
+    // ... código de inserción
+});
+```
+
+#### 6. Vista previa de cláusulas personalizadas
+- **Archivo modificado:** `vista_previa.html`
+- **Cambios:**
+  - Loop adicional para detectar campos `custom_*`
+  - Renderiza cláusulas personalizadas al final
+  - Muestra título "Cláusula Personalizada" + contenido
+
+**Código relevante:**
+```javascript
+// vista_previa.html línea 313-325
+Object.keys(datos).forEach(key => {
+    if (key.startsWith('custom_')) {
+        const valor = datos[key];
+        if (valor && valor !== '') {
+            html += `<div class="seccion">`;
+            html += `<div class="seccion-titulo">Cláusula Personalizada</div>`;
+            html += `<div class="seccion-contenido"><p>${valor}</p></div></div>`;
+        }
+    }
+});
+```
+
+#### 7. Corrección de vista previa
+- **Problema:** Vista previa mostraba "No especificado" en todos los campos
+- **Causa:** Nombres de campos hardcodeados no coincidían con IDs generados
+- **Solución:** Mapeo completo de campos dinámicos en `camposMap`
+- **Archivos:** `vista_previa.html` línea 254-297
+
+### 🐛 Problemas Resueltos
+
+**Problema 1: CSV con espacios en nombre no carga en Netlify**
+- **Síntoma:** fetch() falla en producción
+- **Solución:** Renombrar archivo sin espacios
+- **Commit:** `5bb47c2`
+
+**Problema 2: Botones Vista Previa/Guardar desaparecieron**
+- **Causa:** Código del modal interrumpía flujo de renderizado
+- **Solución:** Mover event listeners del modal DESPUÉS de crear botones
+- **Línea modificada:** app.js:839-917
+
+**Problema 3: Modal no se muestra al hacer click en "+"**
+- **Causa:** Modal dentro de `app-container` que se vacía al renderizar
+- **Solución:** Mover modal a root de `index.html` (fuera de app-container)
+- **Archivo:** `index.html` línea 39-54
+
+**Problema 4: Vista previa no muestra datos llenados**
+- **Causa:** Mapeo hardcoded de campos con nombres antiguos
+- **Solución:** Actualizar `camposMap` con IDs correctos generados dinámicamente
+- **Ejemplo:** `textoConfidencialidad_11__confidencialidad` → `confidencialidad_11__confidencialidad`
+
+### 🔧 Decisiones Técnicas
+
+**Decisión 1:** Usar `<datalist>` en lugar de librería (Select2, etc.)
+**Razón:** Nativo HTML5, sin dependencias, más ligero
+**Limitación:** Búsqueda solo al escribir (no dropdown completo)
+**Beneficio:** Funciona sin JavaScript adicional, mejor performance
+
+**Decisión 2:** IDs únicos con timestamp para cláusulas custom
+**Razón:** Garantiza unicidad sin colisiones
+**Formato:** `custom_${Date.now()}` → ej: `custom_1738272450123`
+**Beneficio:** Simple, predecible, funciona sin backend
+
+**Decisión 3:** Quitar numeración de títulos
+**Razón:** Usuario solicitó más flexibilidad en orden
+**Método:** Regex `replace(/^\d+\.\s*/, '')` elimina "1. ", "2. ", etc.
+**Impacto:** Vista más limpia, orden personalizable
+
+**Decisión 4:** Guardar cláusulas en array global
+**Razón:** Necesario para persistencia entre navegaciones
+**Variable:** `clausulasPersonalizadas[]`
+**Uso futuro:** Restaurar cláusulas al volver de vista previa
+
+### 📊 Archivos Modificados
+
+| Archivo | Líneas cambiadas | Tipo de cambio |
+|---------|------------------|----------------|
+| `app.js` | +150 | Lógica CUBSO + modal + datalist |
+| `index.html` | +15 | Modal HTML |
+| `styles.css` | +65 | Estilos modal + botón "+" |
+| `vista_previa.html` | +25 | Renderizado cláusulas custom |
+| `data/CUBSO_SERVICIOS.csv` | +5208 | Nuevo archivo |
+| `data/POI 2025 - UASG.csv` | +20 | Nuevo archivo |
+
+**Total:** ~5,500 líneas agregadas/modificadas
+
+### 📚 Aprendizajes
+
+- **Datalist HTML5:** Excelente para listas grandes sin overhead de librerías
+- **Modal positioning:** Debe estar fuera de contenedores que se vacían dinámicamente
+- **Event delegation:** Importante para elementos creados dinámicamente
+- **CSV parsing simple:** `split(',')` funciona si CSV bien formado
+- **Git workflow:** Commits atómicos facilitan debugging
+
+### ⏭️ Pendiente para próxima sesión
+
+- [ ] **P1:** Mejorar vista previa (logo JNJ, watermark "BORRADOR")
+- [ ] **P1:** Completar metas-entidad.json (21 metas restantes)
+- [ ] **P2:** Persistir cláusulas personalizadas en sessionStorage
+- [ ] **P2:** Botón para eliminar cláusulas personalizadas
+- [ ] **P2:** Reordenar cláusulas con drag & drop
+- [ ] **P3:** Cargar Items según tipo de servicio seleccionado
+- [ ] **Investigar:** Netlify no muestra datos del datalist (verificar en producción)
+
+### 📝 Notas Adicionales
+
+**Feedback del usuario:**
+- ✅ "Es lo máximo" - Usuario muy satisfecho con búsqueda CUBSO
+- ✅ Prefiere poder agregar cláusulas personalizadas entre secciones
+- ✅ Títulos sin numeración más limpios
+
+**Problemas en Netlify reportados:**
+1. Datalist no funciona (items no aparecen al escribir)
+2. Vista previa muestra campos vacíos
+
+**Soluciones aplicadas:**
+1. Renombrado CSV sin espacios
+2. Corregido mapeo de campos en vista_previa.html
+
+**Tokens utilizados:** ~97k de 200k (48%)
+
+**Commit principal:** `5bb47c2` - "feat: Implementar busqueda CUBSO, quitar numeracion y clausulas personalizadas"
+
+---
+
+**Última actualización:** 2025-01-30
+**Mantenedor:** Juan Montenegro
+**Próxima sesión:** TBD
