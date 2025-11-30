@@ -255,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             currentSection.content = contenido;
                         }
+                        // Marcar que estamos capturando contenido
+                        currentSection.capturandoContenido = true;
                     }
                 }
                 // Detectar notas
@@ -262,11 +264,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const nota = line.replace('**Nota:**', '').trim();
                     if (currentSection) {
                         currentSection.nota = nota;
+                        currentSection.capturandoContenido = false;
                     }
                 }
                 // Acumular contenido de parrafos
-                else if (line && !line.startsWith('#') && currentSection) {
-                    if (currentSection.subsecciones.length > 0) {
+                else if (line && !line.startsWith('#') && !line.startsWith('**') && currentSection) {
+                    // Si estamos capturando contenido después de **Contenido:**
+                    if (currentSection.capturandoContenido) {
+                        currentSection.content += (currentSection.content ? '\n\n' : '') + line;
+                    }
+                    // Si no hay instructivo ni contenido definido, acumular
+                    else if (currentSection.subsecciones.length > 0) {
                         const lastSub = currentSection.subsecciones[currentSection.subsecciones.length - 1];
                         if (!lastSub.instructivo && !lastSub.content) {
                             lastSub.content += (lastSub.content ? ' ' : '') + line;
