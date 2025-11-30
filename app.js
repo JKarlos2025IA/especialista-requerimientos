@@ -325,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         parsedSections.forEach(section => {
+            console.log('Procesando seccion:', section.id, section.title);
             const sectionDiv = document.createElement('div');
             sectionDiv.className = 'form-section';
             sectionDiv.id = `section-${section.id}`;
@@ -335,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Dynamically add controls based on section content and title
             if (section.id === 'general_data' || section.id === 'datos_generales') {
+                console.log('>>> Generando campos de DATOS GENERALES');
                 // Add "Item" first
                 sectionDiv.appendChild(createTextInput('item', 'Item:', '', false, 'Ingrese el número o descripción del item', false, true)); // REQUERIDO
 
