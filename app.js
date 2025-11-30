@@ -250,12 +250,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (line.startsWith('**Contenido:**')) {
                     const contenido = line.replace('**Contenido:**', '').trim();
                     if (currentSection) {
-                        if (currentSection.subsecciones.length > 0) {
-                            currentSection.subsecciones[currentSection.subsecciones.length - 1].content = contenido;
-                        } else {
-                            currentSection.content = contenido;
+                        // Solo agregar si hay contenido en la misma línea
+                        if (contenido) {
+                            if (currentSection.subsecciones.length > 0) {
+                                currentSection.subsecciones[currentSection.subsecciones.length - 1].content = contenido;
+                            } else {
+                                currentSection.content = contenido;
+                            }
                         }
-                        // Marcar que estamos capturando contenido
+                        // Marcar que estamos capturando contenido (incluso si la línea está vacía)
                         currentSection.capturandoContenido = true;
                     }
                 }
