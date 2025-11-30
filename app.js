@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sectionDiv.appendChild(sectionHeader);
 
             // Dynamically add controls based on section content and title
-            if (section.id === 'general_data') {
+            if (section.id === 'general_data' || section.id === 'datos_generales') {
                 // Add "Item" first
                 sectionDiv.appendChild(createTextInput('item', 'Item:', '', false, 'Ingrese el número o descripción del item', false, true)); // REQUERIDO
 
