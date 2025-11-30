@@ -274,7 +274,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (line && !line.startsWith('#') && !line.startsWith('**') && currentSection) {
                     // Si estamos capturando contenido después de **Contenido:**
                     if (currentSection.capturandoContenido) {
-                        currentSection.content += (currentSection.content ? '\n\n' : '') + line;
+                        // Agregar salto de línea entre párrafos
+                        if (currentSection.content) {
+                            currentSection.content += '\n\n' + line;
+                        } else {
+                            currentSection.content = line;
+                        }
                     }
                     // Si no hay instructivo ni contenido definido, acumular
                     else if (currentSection.subsecciones.length > 0) {
