@@ -449,7 +449,20 @@ De existir observaciones, la JNJ las comunica al CONTRATISTA quien deberá subsa
                 sectionDiv.appendChild(createTextInput(`detallePago_${section.id}`, 'Detalle del Pago (Único, Parcial, a Cuenta):', 'INDICAR EL DETALLE DEL PAGO ÚNICO O PAGOS PARCIALES O PAGOS A CUENTA, SEGÚN CORRESPONDA', true));
                 sectionDiv.appendChild(createTextInput(`documentacionPago_${section.id}`, 'Otra Documentación Necesaria para el Pago:', section.content.split('Para efectos del pago de las contraprestaciones ejecutadas por el contratista, la JNJ debe contar con la siguiente documentación:')[1]?.trim() || '', true, '- Documento en el que conste la conformidad...'));
             } else if (section.title.includes('Confidencialidad')) {
-                sectionDiv.appendChild(createTextInput(`confidencialidad_${section.id}`, 'Confidencialidad (Editable):', section.content, true, 'Puede modificar el texto según sea necesario...'));
+                const textoConfidencialidad = `a) EL PROVEEDOR se compromete a mantener en reserva y a no revelar a terceros, sin previa autorización escrita de la JNJ, información que le sea suministrada por ésta última y/o sea obtenida en el ejercicio de las actividades a desarrollarse o conozca directa o indirectamente durante el proceso de selección (procedimientos de selección o contrato menor) o para la realización de sus tareas, excepto en cuanto resultare estrictamente necesario para el cumplimiento del contrato.
+
+b) EL PROVEEDOR deberá mantener a perpetuidad la confidencialidad y reserva absoluta en el manejo de cualquier información y documentación a la que se tenga acceso a consecuencia del procedimiento de selección y la ejecución del Contrato, quedando prohibida su revelación a terceros.
+
+c) Dicha obligación comprende la información que se entrega, como también la que se genera durante la realización de las actividades previas a la ejecución del Contrato, durante su ejecución y la producida una vez que se haya concluido el Contrato.
+
+d) Dicha información puede consistir en informes, recomendaciones, cálculos, documentos y demás datos compilados o recibidos por EL PROVEEDOR.
+
+e) Asimismo, aun cuando sea de índole pública, la información vinculada al procedimiento de contratación, incluyendo su ejecución y conclusión, no podrá ser utilizada por EL PROVEEDOR para fines publicitarios o de difusión por cualquier medio sin obtener la autorización correspondiente de la JNJ.
+
+f) Los documentos técnicos, estudios, informes, grabaciones, películas, programas informáticos y todos los demás que formen parte de su oferta y que se deriven de las prestaciones contratadas serán de exclusiva propiedad de la JNJ. En tal sentido, queda claramente establecido que EL PROVEEDOR no tiene ningún derecho sobre los referidos productos, ni puede venderlos, cederlos o utilizarlos para otros fines que no sean los que se deriven de la ejecución del presente Contrato.
+
+Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su Reglamento aprobado mediante Decreto Supremo N° 003-2013-JUS.`;
+                sectionDiv.appendChild(createTextInput(`confidencialidad_${section.id}`, 'Confidencialidad (Editable):', textoConfidencialidad, true, 'Puede modificar el texto según sea necesario...'));
             } else if (section.title.includes('Penalidades') && !section.title.includes('Otras')) { // Penalidad por Mora
                 sectionDiv.appendChild(createTextInput(`penalidadMora_${section.id}`, 'Penalidad por Mora (Editable):', section.content, true, 'Puede modificar el texto según sea necesario...'));
             } else if (section.title.includes('Otras Penalidades')) {
