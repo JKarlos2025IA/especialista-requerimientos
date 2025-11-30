@@ -35,6 +35,24 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal para agregar cláusula personalizada -->
+    <div id="modalClausula" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Agregar Cláusula Personalizada</h3>
+            <div class="form-group">
+                <label for="clausulaTitulo">Título de la Cláusula:</label>
+                <input type="text" id="clausulaTitulo" placeholder="Ej: Base Legal">
+            </div>
+            <div class="form-group">
+                <label for="clausulaContenido">Contenido:</label>
+                <textarea id="clausulaContenido" rows="6" placeholder="Escriba el contenido de la cláusula..."></textarea>
+            </div>
+            <button id="btnGuardarClausula" class="btn-primary">Agregar Cláusula</button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

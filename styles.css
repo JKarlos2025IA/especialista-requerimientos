@@ -258,3 +258,68 @@ textarea[data-required="true"]:focus {
 .validation-error-close:hover {
     background-color: #991b1b;
 }
+
+/* Modal para agregar cláusulas */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.modal-content .close {
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 20px;
+}
+
+.modal-content .close:hover {
+    color: #000;
+}
+
+/* Botón para agregar cláusula */
+.btn-add-clause {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 20px auto;
+    display: block;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    line-height: 30px;
+    transition: all 0.3s ease;
+}
+
+.btn-add-clause:hover {
+    background-color: #218838;
+    transform: scale(1.1);
+}

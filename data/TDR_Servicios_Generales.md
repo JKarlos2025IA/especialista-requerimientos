@@ -82,7 +82,21 @@ Para efectos del pago de las contraprestaciones ejecutadas por el contratista, l
 En caso de retraso en el pago por parte de la JNJ, salvo que se deba a caso fortuito o fuerza mayor, EL CONTRATISTA tiene derecho al pago de intereses legales conforme a lo establecido en el articulo 67 de la Ley N 32069, Ley General de Contrataciones Publicas.
 
 ## 11. Confidencialidad
-**Instructivo:** De ser procedente, indicar la confidencialidad y reserva absoluta en el manejo de informacion a la que se tenga accesos y que se encuentre relacionada con la prestacion, quedando prohibido revelar dicha informacion a terceros.
+**Contenido:** 
+a)	EL PROVEEDOR se compromete a mantener en reserva y a no revelar a terceros, sin previa autorización escrita de la JNJ, información que le sea suministrada por ésta última y/o sea obtenida en el ejercicio de las actividades a desarrollarse o conozca directa o indirectamente durante el proceso de selección (procedimientos de selección o contrato menor) o para la realización de sus tareas, excepto en cuanto resultare estrictamente necesario para el cumplimiento del contrato.
+
+b)	EL PROVEEDOR deberá mantener a perpetuidad la confidencialidad y reserva absoluta en el manejo de cualquier información y documentación a la que se tenga acceso a consecuencia del procedimiento de selección y la ejecución del Contrato, quedando prohibida su revelación a terceros.
+
+c)	Dicha obligación comprende la información que se entrega, como también la que se genera durante la realización de las actividades previas a la ejecución del Contrato, durante su ejecución y la producida una vez que se haya concluido el Contrato.
+
+d)	Dicha información puede consistir en informes, recomendaciones, cálculos, documentos y demás datos compilados o recibidos por EL PROVEEDOR.
+
+e)	Asimismo, aun cuando sea de índole pública, la información vinculada al procedimiento de contratación, incluyendo su ejecución y conclusión, no podrá ser utilizada por EL PROVEEDOR para fines publicitarios o de difusión por cualquier medio sin obtener la autorización correspondiente de la JNJ.
+
+f)	Los documentos técnicos, estudios, informes, grabaciones, películas, programas informáticos y todos los demás que formen parte de su oferta y que se deriven de las prestaciones contratadas serán de exclusiva propiedad de la JNJ. En tal sentido, queda claramente establecido que EL PROVEEDOR no tiene ningún derecho sobre los referidos productos, ni puede venderlos, cederlos o utilizarlos para otros fines que no sean los que se deriven de la ejecución del presente Contrato.
+
+Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su Reglamento aprobado mediante Decreto Supremo N° 003-2013-JUS.
+.
 
 ## 12. Penalidades
 

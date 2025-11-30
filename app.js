@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Store metas data globally or pass it around
     let allMetasData = [];
+    let allServiciosData = [];
+    let clausulasPersonalizadas = []; // Array para almacenar cláusulas custom
 
     // Verificar si hay datos temporales del sessionStorage (regreso de vista previa)
     const datosTemporales = sessionStorage.getItem('tdr_datos_temporales');
@@ -57,6 +59,49 @@ document.addEventListener('DOMContentLoaded', () => {
             input.setAttribute('data-required', 'true');
         }
         div.appendChild(input);
+        return div;
+    }
+
+    function createDatalistInput(id, label, dataList, placeholder = '', required = false) {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+
+        const lbl = document.createElement('label');
+        lbl.htmlFor = id;
+        lbl.textContent = label;
+
+        if (required) {
+            const asterisco = document.createElement('span');
+            asterisco.className = 'required';
+            asterisco.textContent = ' *';
+            lbl.appendChild(asterisco);
+        }
+
+        div.appendChild(lbl);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = id;
+        input.name = id;
+        input.placeholder = placeholder;
+        input.setAttribute('list', `${id}-datalist`);
+
+        if (required) {
+            input.setAttribute('data-required', 'true');
+        }
+
+        const datalist = document.createElement('datalist');
+        datalist.id = `${id}-datalist`;
+
+        dataList.forEach(item => {
+            const option = document.createElement('option');
+            option.value = `${item.codigo} - ${item.titulo}`;
+            datalist.appendChild(option);
+        });
+
+        div.appendChild(input);
+        div.appendChild(datalist);
+
         return div;
     }
 
@@ -185,6 +230,32 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error al cargar datos de metas:', error);
             // Optionally display error to user
+            return [];
+        }
+    }
+
+    async function fetchServiciosData() {
+        try {
+            const response = await fetch('data/CUBSO_SERVICIOS.csv');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const csvText = await response.text();
+            const lines = csvText.trim().split('\n');
+
+            // Saltar header (primera línea)
+            allServiciosData = lines.slice(1).map(line => {
+                const [codigo, titulo] = line.split(',');
+                return {
+                    codigo: codigo?.trim() || '',
+                    titulo: titulo?.trim() || ''
+                };
+            }).filter(item => item.codigo && item.titulo);
+
+            console.log(`Datos de servicios CUBSO cargados: ${allServiciosData.length} items`);
+            return allServiciosData;
+        } catch (error) {
+            console.error('Error al cargar datos de servicios CUBSO:', error);
             return [];
         }
     }
@@ -324,21 +395,40 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchMetasData();
         }
 
-        parsedSections.forEach(section => {
+        if (allServiciosData.length === 0) {
+            await fetchServiciosData();
+        }
+
+        console.log('TODAS LAS SECCIONES PARSEADAS:', parsedSections.map(s => s.id));
+
+        parsedSections.forEach((section, index) => {
             console.log('Procesando seccion:', section.id, section.title);
+
+            // Botón "+" ANTES de cada sección (excepto la primera)
+            if (index > 0) {
+                const btnAdd = document.createElement('button');
+                btnAdd.className = 'btn-add-clause';
+                btnAdd.textContent = '+';
+                btnAdd.type = 'button';
+                btnAdd.setAttribute('data-insert-before', section.id);
+                formElement.appendChild(btnAdd);
+            }
+
             const sectionDiv = document.createElement('div');
             sectionDiv.className = 'form-section';
             sectionDiv.id = `section-${section.id}`;
 
             const sectionHeader = document.createElement('h3');
-            sectionHeader.textContent = section.title;
+            // Quitar numeración del título (eliminar "1. ", "2. ", etc.)
+            const tituloSinNumero = section.title.replace(/^\d+\.\s*/, '');
+            sectionHeader.textContent = tituloSinNumero;
             sectionDiv.appendChild(sectionHeader);
 
             // Dynamically add controls based on section content and title
             if (section.id === 'general_data' || section.id === 'datos_generales') {
                 console.log('>>> Generando campos de DATOS GENERALES');
-                // Add "Item" first
-                sectionDiv.appendChild(createTextInput('item', 'Item:', '', false, 'Ingrese el número o descripción del item', false, true)); // REQUERIDO
+                // Add "Item" with datalist for CUBSO search
+                sectionDiv.appendChild(createDatalistInput('item', 'Item (Servicio CUBSO):', allServiciosData, 'Buscar por código o descripción...', true)); // REQUERIDO
 
                 // Then Meta, Unidad, Actividad (existing dynamic logic)
                 sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta', false, true)); // REQUERIDO
@@ -744,6 +834,86 @@ Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su
         btnRevisarIA.addEventListener('click', (event) => {
             event.preventDefault();
             alert('Esta funcionalidad estara disponible cuando se configure la API de Claude.');
+        });
+
+        // --- Manejador del Modal de Cláusulas Personalizadas ---
+        const modal = document.getElementById('modalClausula');
+        const closeBtn = modal.querySelector('.close');
+        const btnGuardarClausula = document.getElementById('btnGuardarClausula');
+        const clausulaTituloInput = document.getElementById('clausulaTitulo');
+        const clausulaContenidoInput = document.getElementById('clausulaContenido');
+        let insertBeforeId = null;
+
+        // Event listeners para botones "+"
+        document.querySelectorAll('.btn-add-clause').forEach(btn => {
+            btn.addEventListener('click', function() {
+                insertBeforeId = this.getAttribute('data-insert-before');
+                modal.style.display = 'flex';
+                clausulaTituloInput.value = '';
+                clausulaContenidoInput.value = '';
+            });
+        });
+
+        // Cerrar modal
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Guardar cláusula personalizada
+        btnGuardarClausula.addEventListener('click', () => {
+            const titulo = clausulaTituloInput.value.trim();
+            const contenido = clausulaContenidoInput.value.trim();
+
+            if (!titulo || !contenido) {
+                alert('Por favor complete el título y contenido de la cláusula');
+                return;
+            }
+
+            // Generar ID único para la cláusula
+            const clausulaId = `custom_${Date.now()}`;
+
+            // Guardar en array
+            clausulasPersonalizadas.push({
+                id: clausulaId,
+                titulo: titulo,
+                contenido: contenido,
+                insertBeforeId: insertBeforeId
+            });
+
+            // Crear sección custom
+            const customSection = document.createElement('div');
+            customSection.className = 'form-section';
+            customSection.id = `section-${clausulaId}`;
+            customSection.setAttribute('data-custom', 'true');
+
+            const header = document.createElement('h3');
+            header.textContent = titulo;
+            customSection.appendChild(header);
+
+            const textarea = document.createElement('textarea');
+            textarea.id = clausulaId;
+            textarea.name = clausulaId;
+            textarea.value = contenido;
+            textarea.rows = 6;
+            textarea.className = 'form-control';
+            customSection.appendChild(textarea);
+
+            // Insertar antes de la sección especificada
+            const targetSection = document.getElementById(`section-${insertBeforeId}`);
+            const btnBeforeTarget = formElement.querySelector(`[data-insert-before="${insertBeforeId}"]`);
+
+            if (btnBeforeTarget && targetSection) {
+                formElement.insertBefore(customSection, btnBeforeTarget);
+            }
+
+            // Cerrar modal
+            modal.style.display = 'none';
         });
 
         console.log('Formulario interactivo generado con todos los controles.');

@@ -250,51 +250,78 @@
                 </div>
             `;
 
-            // Secciones numeradas
-            const secciones = [
-                { num: '1', titulo: 'Finalidad Publica', campo: 'finalidadPublica_1__finalidad_publica' },
-                { num: '2', titulo: 'Antecedentes', campo: 'antecedentes_2__antecedentes' },
-                { num: '3', titulo: 'Objetivo de la Contratacion', subsecciones: [
-                    { titulo: '3.1 Objetivo General', campo: 'objetivoGeneral_3__objetivo_de_la_contratacion' },
-                    { titulo: '3.2 Objetivo Especifico', campo: 'objetivoEspecifico_3__objetivo_de_la_contratacion' }
-                ]},
-                { num: '4', titulo: 'Alcance y Descripcion del Servicio', campo: 'alcanceDescripcion_4__alcance_y_descripcion_del_servicio' },
-                { num: '5', titulo: 'Requisitos del Proveedor y/o Personal', campo: 'requisitosProveedor_5__requisitos_del_proveedor_y_o_personal' },
-                { num: '6', titulo: 'Perfeccionamiento', campo: 'perfeccionamiento_6__perfeccionamiento' },
-                { num: '7', titulo: 'Lugar y Plazo de Ejecucion', subsecciones: [
-                    { titulo: 'Lugar', campo: 'lugarEjecucion_7__lugar_y_plazo_de_ejecucion' },
-                    { titulo: 'Plazo', campo: 'plazoEjecucion_7__lugar_y_plazo_de_ejecucion' }
-                ]},
-                { num: '8', titulo: 'Resultados Esperados-Entregables', campo: 'entregablesDescripcion_8__resultados_esperados_entregables' },
-                { num: '9', titulo: 'Conformidad', campo: 'conformidadArea_9__conformidad' },
-                { num: '10', titulo: 'Forma y Condiciones de Pago', campo: 'monedaPago_10__forma_y_condiciones_de_pago' },
-                { num: '11', titulo: 'Confidencialidad', campo: 'textoConfidencialidad_11__confidencialidad' },
-                { num: '12', titulo: 'Penalidades', campo: 'incluirPenalidadMora_12__penalidades' },
-                { num: '13', titulo: 'Otras Penalidades', campo: 'otrasPenalidadesDescripcion_13__otras_penalidades' },
-                { num: '14', titulo: 'Resolucion del Contrato', campo: 'incluirResolucionContrato_14__resolucion_del_contrato' },
-                { num: '15', titulo: 'Clausula Garantias', campo: 'textoGarantias_15__clausula_garantias' },
-                { num: '16', titulo: 'Clausula Gestion de Riesgos', campo: 'incluirGestionRiesgos_16__clausula_gestion_de_riesgos' },
-                { num: '17', titulo: 'Clausula Anticorrupcion y Antisoborno', campo: 'incluirAnticorrupcion_17__clausula_anticorrupcion_y_antisoborno' },
-                { num: '18', titulo: 'Clausula Solucion de Controversias', campo: 'incluirSolucionControversias_18__clausula_solucion_de_controversias' }
-            ];
+            // Mapeo de campos dinámicos a títulos legibles
+            const camposMap = {
+                // Sección 1
+                'content_1__finalidad_publica': { num: '1', titulo: 'Finalidad Publica' },
+                // Sección 2
+                'content_2__antecedentes': { num: '2', titulo: 'Antecedentes' },
+                // Sección 3
+                'objetivoGeneral_3__objetivo_de_la_contratacion': { num: '3.1', titulo: 'Objetivo General' },
+                'objetivoEspecifico_3__objetivo_de_la_contratacion': { num: '3.2', titulo: 'Objetivo Especifico' },
+                // Sección 4
+                'content_4__alcance_y_descripcion_del_servicio': { num: '4', titulo: 'Alcance y Descripcion del Servicio' },
+                // Sección 5
+                'content_5__requisitos_del_proveedor_y_o_personal': { num: '5', titulo: 'Requisitos del Proveedor y/o Personal' },
+                // Sección 6
+                'content_6__perfeccionamiento': { num: '6', titulo: 'Perfeccionamiento' },
+                // Sección 7
+                'lugarEjecucion_7__lugar_y_plazo_de_ejecucion': { num: '7.1', titulo: 'Lugar de Ejecución' },
+                'plazoEjecucion_7__lugar_y_plazo_de_ejecucion': { num: '7.2', titulo: 'Plazo de Ejecución' },
+                'plazoPersonalizado_7__lugar_y_plazo_de_ejecucion': { num: '7.3', titulo: 'Plazo Personalizado' },
+                // Sección 8
+                'tipoEntregables_8__resultados_esperados_entregables': { num: '8.1', titulo: 'Tipo de Entregables' },
+                'entregablesDescripcion_8__resultados_esperados_entregables': { num: '8.2', titulo: 'Descripción Detallada de Entregables' },
+                // Sección 9
+                'conformidad_9__conformidad': { num: '9', titulo: 'Conformidad' },
+                // Sección 10
+                'monedaPago_10__forma_y_condiciones_de_pago': { num: '10.1', titulo: 'Moneda de Pago' },
+                'detallePago_10__forma_y_condiciones_de_pago': { num: '10.2', titulo: 'Detalle del Pago' },
+                'documentacionPago_10__forma_y_condiciones_de_pago': { num: '10.3', titulo: 'Documentación para el Pago' },
+                // Sección 11
+                'confidencialidad_11__confidencialidad': { num: '11', titulo: 'Confidencialidad' },
+                // Sección 12
+                'penalidadMora_12__penalidades': { num: '12', titulo: 'Penalidades por Mora' },
+                // Sección 13
+                'otrasPenalidadesDescripcion_13__otras_penalidades': { num: '13', titulo: 'Otras Penalidades' },
+                // Sección 14
+                'content_14__resolucion_del_contrato': { num: '14', titulo: 'Resolución del Contrato' },
+                // Sección 15
+                'content_15__clausula_garantias': { num: '15', titulo: 'Cláusula Garantías' },
+                // Sección 16
+                'content_16__clausula_gestion_de_riesgos': { num: '16', titulo: 'Cláusula Gestión de Riesgos' },
+                // Sección 17
+                'content_17__clausula_anticorrupcion_y_antisoborno': { num: '17', titulo: 'Cláusula Anticorrupción y Antisoborno' },
+                // Sección 18
+                'content_18__clausula_solucion_de_controversias': { num: '18', titulo: 'Cláusula Solución de Controversias' }
+            };
 
-            secciones.forEach(seccion => {
-                html += `<div class="seccion">`;
-                html += `<div class="seccion-titulo">${seccion.num}. ${seccion.titulo}</div>`;
-                html += `<div class="seccion-contenido">`;
+            // Generar secciones dinámicamente
+            Object.keys(camposMap).forEach(campo => {
+                const info = camposMap[campo];
+                const valor = datos[campo];
 
-                if (seccion.subsecciones) {
-                    seccion.subsecciones.forEach(sub => {
-                        html += `<div class="subseccion">`;
-                        html += `<div class="subseccion-titulo">${sub.titulo}</div>`;
-                        html += `<p>${datos[sub.campo] || 'No especificado'}</p>`;
-                        html += `</div>`;
-                    });
-                } else {
-                    html += `<p>${datos[seccion.campo] || 'No especificado'}</p>`;
+                if (valor && valor !== '' && valor !== 'No especificado') {
+                    html += `<div class="seccion">`;
+                    html += `<div class="seccion-titulo">${info.titulo}</div>`;
+                    html += `<div class="seccion-contenido">`;
+                    html += `<p>${valor}</p>`;
+                    html += `</div></div>`;
                 }
+            });
 
-                html += `</div></div>`;
+            // Agregar cláusulas personalizadas (campos que comienzan con "custom_")
+            Object.keys(datos).forEach(key => {
+                if (key.startsWith('custom_')) {
+                    const valor = datos[key];
+                    if (valor && valor !== '') {
+                        html += `<div class="seccion">`;
+                        html += `<div class="seccion-titulo">Cláusula Personalizada</div>`;
+                        html += `<div class="seccion-contenido">`;
+                        html += `<p>${valor}</p>`;
+                        html += `</div></div>`;
+                    }
+                }
             });
 
             contenedor.innerHTML = html;
