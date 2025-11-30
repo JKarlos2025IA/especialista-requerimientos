@@ -23,12 +23,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Helper Functions for Control Generation (Ficha #2.0, Sub-tarea 2.4) ---
-    function createTextInput(id, label, initialValue = '', isTextArea = false, placeholder = '', readOnly = false) {
+    function createTextInput(id, label, initialValue = '', isTextArea = false, placeholder = '', readOnly = false, required = false) {
         const div = document.createElement('div');
         div.className = 'form-group';
         const lbl = document.createElement('label');
         lbl.htmlFor = id;
         lbl.textContent = label;
+
+        // Agregar asterisco rojo si es requerido
+        if (required) {
+            const asterisco = document.createElement('span');
+            asterisco.className = 'required';
+            asterisco.textContent = ' *';
+            lbl.appendChild(asterisco);
+        }
+
         div.appendChild(lbl);
 
         let input;
@@ -44,6 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = initialValue;
         input.placeholder = placeholder;
         input.readOnly = readOnly;
+        if (required) {
+            input.setAttribute('data-required', 'true');
+        }
         div.appendChild(input);
         return div;
     }
@@ -111,18 +123,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return div;
     }
 
-    function createSelectInput(id, label, options, initialValue = '', placeholder = '', multiple = false) {
+    function createSelectInput(id, label, options, initialValue = '', placeholder = '', multiple = false, required = false) {
         const div = document.createElement('div');
         div.className = 'form-group';
         const lbl = document.createElement('label');
         lbl.htmlFor = id;
         lbl.textContent = label;
+
+        // Agregar asterisco rojo si es requerido
+        if (required) {
+            const asterisco = document.createElement('span');
+            asterisco.className = 'required';
+            asterisco.textContent = ' *';
+            lbl.appendChild(asterisco);
+        }
+
         div.appendChild(lbl);
 
         const select = document.createElement('select');
         select.id = id;
         select.name = id;
         select.multiple = multiple;
+        if (required) {
+            select.setAttribute('data-required', 'true');
+        }
 
         if (placeholder) {
             const defaultOption = document.createElement('option');
@@ -296,21 +320,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Dynamically add controls based on section content and title
             if (section.id === 'general_data') {
                 // Add "Item" first
-                sectionDiv.appendChild(createTextInput('item', 'Item:', '', false, 'Ingrese el número o descripción del item'));
-                
+                sectionDiv.appendChild(createTextInput('item', 'Item:', '', false, 'Ingrese el número o descripción del item', false, true)); // REQUERIDO
+
                 // Then Meta, Unidad, Actividad (existing dynamic logic)
-                sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta'));
+                sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta', false, true)); // REQUERIDO
                 const metaSelect = sectionDiv.querySelector('#metaPresupuestaria');
 
-                sectionDiv.appendChild(createTextInput('unidadOrganizacion', 'Unidad de Organización:', '', false, '', true)); // Readonly initially
+                sectionDiv.appendChild(createTextInput('unidadOrganizacion', 'Unidad de Organización:', '', false, '', true)); // Readonly initially (auto-completa)
                 const unidadInput = sectionDiv.querySelector('#unidadOrganizacion');
 
-                sectionDiv.appendChild(createSelectInput('actividadPOI', 'Actividad del POI:', [], '', 'Seleccione actividades', true));
+                sectionDiv.appendChild(createSelectInput('actividadPOI', 'Actividad del POI:', [], '', 'Seleccione actividades', true, true)); // REQUERIDO
                 const actividadSelect = sectionDiv.querySelector('#actividadPOI');
                 actividadSelect.setAttribute('multiple', 'true');
                 actividadSelect.setAttribute('size', '5');
 
-                sectionDiv.appendChild(createTextInput('denominacionContratacion', 'Denominación de la Contratación:', '', false, 'Ingrese la denominación del servicio'))
+                sectionDiv.appendChild(createTextInput('denominacionContratacion', 'Denominación de la Contratación:', '', false, 'Ingrese la denominación del servicio', false, true)) // REQUERIDO
 
 
                 metaSelect.addEventListener('change', (event) => {
@@ -358,29 +382,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     otroInput.style.display = e.target.checked ? 'block' : 'none';
                 });
             } else if (section.title.includes('Lugar y Plazo de Ejecución')) {
-                sectionDiv.appendChild(createTextInput(`lugarEjecucion_${section.id}`, 'Lugar de Ejecución:', section.content.split('Plazo:')[0].replace('Lugar:', '').trim(), false, '(El área usuaria deberá señalar el lugar donde se efectuarán las prestaciones)'));
-                const options = [
+                // Select para Lugar de Ejecución
+                const opcionesLugar = [
+                    { value: 'instalaciones_entidad', text: 'En las instalaciones de la Junta Nacional de Justicia' },
+                    { value: 'instalaciones_proveedor', text: 'En las instalaciones del proveedor' },
+                    { value: 'modalidad_remota', text: 'Modalidad remota/virtual' },
+                    { value: 'modalidad_mixta', text: 'Modalidad mixta (presencial y remota)' },
+                    { value: 'otro', text: 'Otro (especifique)' }
+                ];
+                sectionDiv.appendChild(createSelectInput(`lugarEjecucion_${section.id}`, 'Lugar de Ejecución:', opcionesLugar, '', 'Seleccione el lugar de ejecución', false, true)); // REQUERIDO
+                const otroLugarInput = createTextInput(`lugarEjecucionOtro_${section.id}`, 'Especifique otro lugar:', '', false, 'Indique el lugar específico');
+                otroLugarInput.style.display = 'none';
+                sectionDiv.appendChild(otroLugarInput);
+                sectionDiv.querySelector(`#lugarEjecucion_${section.id}`).addEventListener('change', (e) => {
+                    otroLugarInput.style.display = e.target.value === 'otro' ? 'block' : 'none';
+                });
+
+                // Select para Plazo de Ejecución
+                const opcionesPlazo = [
                     { value: 'dia_siguiente', text: 'El servicio inicia a partir del día siguiente de notificada la orden de servicio' },
-                    { value: 'suscripcion_acta', text: 'El servicio inicia a partir del día de notificada la orden de servicio y suscripción del acta de inicio o la comunicación vía correo del área usuaria' },
+                    { value: 'suscripcion_acta', text: 'El servicio inicia a partir del día de notificada la orden de servicio y suscripción del acta de inicio' },
                     { value: 'personalizado', text: 'Personalizado (especifique)' }
                 ];
-                sectionDiv.appendChild(createRadioGroup(`plazoEjecucion_${section.id}`, 'Plazo de Ejecución:', options, 'dia_siguiente'));
+                sectionDiv.appendChild(createSelectInput(`plazoEjecucion_${section.id}`, 'Plazo de Ejecución:', opcionesPlazo, 'dia_siguiente', 'Seleccione el plazo de ejecución', false, true)); // REQUERIDO
                 const personalizadoInput = createTextInput(`plazoPersonalizado_${section.id}`, 'Especifique plazo personalizado:', '', false, 'Indique aquí el inicio del plazo de ejecución');
                 personalizadoInput.style.display = 'none';
                 sectionDiv.appendChild(personalizadoInput);
-                sectionDiv.querySelector(`#plazoEjecucion_${section.id}_personalizado`).addEventListener('change', (e) => {
-                    personalizadoInput.style.display = e.target.checked ? 'block' : 'none';
+                sectionDiv.querySelector(`#plazoEjecucion_${section.id}`).addEventListener('change', (e) => {
+                    personalizadoInput.style.display = e.target.value === 'personalizado' ? 'block' : 'none';
                 });
             } else if (section.title.includes('Resultados Esperados-Entregables')) {
-                sectionDiv.appendChild(createTextInput(`entregablesDescripcion_${section.id}`, 'Descripción de Entregables (Indicar contenido, plazos y condiciones relevantes):', section.content, true, '(El área usuaria deberá indicar el número de entregables, el contenido de cada entregable...)'));
-            } else if (section.title.includes('Conformidad')) {
-                sectionDiv.appendChild(createTextInput(`conformidadArea_${section.id}`, 'Área que otorga la Conformidad:', 'CONSIGNAR EL ÁREA O UNIDAD ORGÁNICA QUE OTORGA LA CONFORMIDAD'));
-                const options = [
-                    { value: '7_dias', text: 'Siete (7) días' },
-                    { value: '20_dias', text: 'Veinte (20) días (en caso se requiera efectuar pruebas)' }
+                // Select para tipo de entregables
+                const opcionesEntregables = [
+                    { value: 'informe_unico', text: 'Informe único al finalizar el servicio' },
+                    { value: 'informes_mensuales', text: 'Informes mensuales de avance' },
+                    { value: 'informes_quincenales', text: 'Informes quincenales de avance' },
+                    { value: 'personalizado', text: 'Personalizado (describa los entregables)' }
                 ];
-                sectionDiv.appendChild(createRadioGroup(`conformidadPlazo_${section.id}`, 'Plazo para Conformidad:', options, '7_dias'));
-                sectionDiv.appendChild(createTextInput(`conformidadObservaciones_${section.id}`, 'Consideraciones para Observaciones y Subsanación:', section.content, true, 'De existir observaciones, la JNJ las comunica al CONTRATISTA...'));
+                sectionDiv.appendChild(createSelectInput(`tipoEntregables_${section.id}`, 'Tipo de Entregables:', opcionesEntregables, '', 'Seleccione el tipo de entregables', false, true)); // REQUERIDO
+
+                // Textarea para descripción detallada (se muestra siempre pero es obligatorio si elige "personalizado")
+                sectionDiv.appendChild(createTextInput(`entregablesDescripcion_${section.id}`, 'Descripción Detallada de Entregables:', section.content, true, 'Indique número de entregables, contenido específico, plazos de entrega y condiciones relevantes...'));
+            } else if (section.title.includes('Conformidad')) {
+                const textoConformidad = `La conformidad del servicio será otorgada por el área usuaria o unidad orgánica responsable del seguimiento y supervisión del servicio contratado, dentro del plazo de siete (7) días hábiles contados a partir de la presentación del/los entregables por parte del contratista.
+
+De existir observaciones, la JNJ las comunica al CONTRATISTA quien deberá subsanarlas en un plazo no mayor a tres (03) días hábiles. El cómputo del plazo para la conformidad se suspende desde la fecha en que se comunica la observación hasta que el CONTRATISTA subsana la misma.`;
+                sectionDiv.appendChild(createTextInput(`conformidad_${section.id}`, 'Conformidad del Servicio (Editable):', textoConformidad, true, 'Puede modificar el texto según sea necesario...'));
             } else if (section.title.includes('Forma y Condiciones de Pago')) {
                 sectionDiv.appendChild(createTextInput(`monedaPago_${section.id}`, 'Moneda de Pago:', 'INDICAR MONEDA'));
                 sectionDiv.appendChild(createTextInput(`detallePago_${section.id}`, 'Detalle del Pago (Único, Parcial, a Cuenta):', 'INDICAR EL DETALLE DEL PAGO ÚNICO O PAGOS PARCIALES O PAGOS A CUENTA, SEGÚN CORRESPONDA', true));
@@ -523,6 +570,77 @@ document.addEventListener('DOMContentLoaded', () => {
         buttonContainer.appendChild(btnRevisarIA);
         formElement.appendChild(buttonContainer);
 
+        // Función para validar campos obligatorios
+        function validarCamposObligatorios() {
+            const camposRequeridos = formElement.querySelectorAll('[data-required="true"]');
+            const errores = [];
+
+            camposRequeridos.forEach(campo => {
+                const label = formElement.querySelector(`label[for="${campo.id}"]`);
+                const nombreCampo = label ? label.textContent.replace(' *', '').trim() : campo.id;
+
+                // Validar según tipo de campo
+                if (campo.tagName === 'SELECT') {
+                    if (!campo.value || campo.value === '') {
+                        errores.push(nombreCampo);
+                    }
+                } else if (campo.tagName === 'INPUT' || campo.tagName === 'TEXTAREA') {
+                    const valor = campo.value.trim();
+                    if (!valor || valor === '') {
+                        errores.push(nombreCampo);
+                    }
+                }
+            });
+
+            return errores;
+        }
+
+        // Función para mostrar errores de validación
+        function mostrarErroresValidacion(camposFaltantes) {
+            // Eliminar mensaje de error anterior si existe
+            const errorAnterior = document.querySelector('.validation-error-box');
+            if (errorAnterior) {
+                errorAnterior.remove();
+            }
+
+            // Crear caja de error
+            const errorBox = document.createElement('div');
+            errorBox.className = 'validation-error-box';
+            errorBox.innerHTML = `
+                <h3>⚠️ No se puede guardar el TDR</h3>
+                <p><strong>Los siguientes campos obligatorios están vacíos:</strong></p>
+                <ul>
+                    ${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}
+                </ul>
+                <button class="validation-error-close">Entendido</button>
+            `;
+
+            // Insertar al inicio del formulario
+            formElement.insertBefore(errorBox, formElement.firstChild);
+
+            // Scroll hacia el error
+            errorBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Botón para cerrar el error
+            errorBox.querySelector('.validation-error-close').addEventListener('click', () => {
+                errorBox.remove();
+            });
+
+            // Enfocar el primer campo vacío
+            const primerCampoId = formElement.querySelector('[data-required="true"]');
+            if (primerCampoId) {
+                const camposRequeridos = formElement.querySelectorAll('[data-required="true"]');
+                for (const campo of camposRequeridos) {
+                    const valor = campo.tagName === 'SELECT' ? campo.value : campo.value.trim();
+                    if (!valor || valor === '') {
+                        campo.focus();
+                        campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        break;
+                    }
+                }
+            }
+        }
+
         // Funcion para recolectar datos del formulario
         function collectFormData() {
             const formData = {};
@@ -561,6 +679,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Event listener Guardar
         btnGuardar.addEventListener('click', (event) => {
             event.preventDefault();
+
+            // VALIDAR CAMPOS OBLIGATORIOS PRIMERO
+            const camposFaltantes = validarCamposObligatorios();
+
+            if (camposFaltantes.length > 0) {
+                mostrarErroresValidacion(camposFaltantes);
+                return; // Detener el guardado
+            }
+
+            // Si pasa la validación, continuar con el guardado
             const formData = collectFormData();
 
             // Generar ID unico

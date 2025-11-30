@@ -177,3 +177,84 @@ button#nextButton:hover {
 .submit-tda-button:hover {
     background-color: #0056b3;
 }
+
+/* ======================================= */
+/* ESTILOS DE VALIDACIÓN */
+/* ======================================= */
+
+/* Asterisco rojo para campos obligatorios */
+.required {
+    color: #dc2626;
+    font-weight: bold;
+    margin-left: 3px;
+    font-size: 1.1em;
+}
+
+/* Borde izquierdo rojo para campos vacíos con error */
+input[data-required="true"]:invalid,
+select[data-required="true"]:invalid,
+textarea[data-required="true"]:invalid {
+    border-left: 4px solid #dc2626;
+}
+
+/* Borde izquierdo verde para campos válidos */
+input[data-required="true"]:valid:not(:placeholder-shown),
+select[data-required="true"]:valid:not([value=""]),
+textarea[data-required="true"]:valid:not(:placeholder-shown) {
+    border-left: 4px solid #16a34a;
+}
+
+/* Estilo para inputs de texto que tienen el foco */
+input[data-required="true"]:focus,
+select[data-required="true"]:focus,
+textarea[data-required="true"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Mensaje de error de validación */
+.validation-error-box {
+    background-color: #fee2e2;
+    border: 2px solid #dc2626;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    color: #991b1b;
+}
+
+.validation-error-box h3 {
+    color: #dc2626;
+    margin-top: 0;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3em;
+}
+
+.validation-error-box ul {
+    margin: 10px 0;
+    padding-left: 25px;
+}
+
+.validation-error-box li {
+    margin: 8px 0;
+    font-weight: 500;
+}
+
+.validation-error-close {
+    background-color: #dc2626;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+}
+
+.validation-error-close:hover {
+    background-color: #991b1b;
+}
