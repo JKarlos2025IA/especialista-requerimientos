@@ -4,42 +4,21 @@
         "nombre": "0012 - Gestion de Abastecimiento y Servicios Generales",
         "unidad": "Unidad de Abastecimiento y Servicios Generales",
         "actividades": [
-            { "id": "AO_01", "nombre": "AO 01 - Adquisicion de bienes y servicios" },
-            { "id": "AO_02", "nombre": "AO 02 - Gestion de almacenes y distribucion" },
-            { "id": "AO_03", "nombre": "AO 03 - Mantenimiento de infraestructura" },
-            { "id": "AO_04", "nombre": "AO 04 - Servicios generales y apoyo logistico" }
-        ]
-    },
-    {
-        "id": "0025",
-        "nombre": "0025 - Gestion de Recursos Humanos",
-        "unidad": "Unidad de Recursos Humanos",
-        "actividades": [
-            { "id": "AO_01", "nombre": "AO 01 - Reclutamiento y seleccion de personal" },
-            { "id": "AO_02", "nombre": "AO 02 - Capacitacion y desarrollo" },
-            { "id": "AO_03", "nombre": "AO 03 - Gestion de planillas" },
-            { "id": "AO_04", "nombre": "AO 04 - Bienestar social" }
-        ]
-    },
-    {
-        "id": "0038",
-        "nombre": "0038 - Tecnologias de la Informacion",
-        "unidad": "Oficina General de Tecnologias de la Informacion",
-        "actividades": [
-            { "id": "AO_01", "nombre": "AO 01 - Desarrollo de sistemas informaticos" },
-            { "id": "AO_02", "nombre": "AO 02 - Soporte tecnico y mantenimiento" },
-            { "id": "AO_03", "nombre": "AO 03 - Seguridad informatica" },
-            { "id": "AO_04", "nombre": "AO 04 - Infraestructura tecnologica" },
-            { "id": "AO_05", "nombre": "AO 05 - Transformacion digital" }
-        ]
-    },
-    {
-        "id": "0041",
-        "nombre": "0041 - Gestion Documentaria y Archivo",
-        "unidad": "Oficina de Gestion Documental",
-        "actividades": [
-            { "id": "AO_01", "nombre": "AO 01 - Tramite documentario" },
-            { "id": "AO_02", "nombre": "AO 02 - Archivo central" }
+            { "id": "AO_01", "nombre": "AO 1 - Gestion de la Jefatura y SGD" },
+            { "id": "AO_02", "nombre": "AO 2 - Elaboracion y Modificacion del Cuadro Multianual de Necesidades - CMN" },
+            { "id": "AO_03", "nombre": "AO 3 - Elaboracion y Modificacion del Plan Anual de Contrataciones - PAC" },
+            { "id": "AO_04", "nombre": "AO 4 - Ejecucion del Plan Anual de Contrataciones - PAC (CP-AS)" },
+            { "id": "AO_05", "nombre": "AO 5 - Ejecucion de Procedimiento de Seleccion Menores a 8 UIT" },
+            { "id": "AO_06", "nombre": "AO 6 - Seguimiento de la Ejecucion del POI - UASG" },
+            { "id": "AO_07", "nombre": "AO 7 - Mantenimiento del SIGA MEF y Soporte en Apoyo a las Areas Usuarias" },
+            { "id": "AO_08", "nombre": "AO 8 - Atencion de Actos Preparatorios para la Ejecucion del Gasto" },
+            { "id": "AO_09", "nombre": "AO 9 - Registro de Ordenes de Compra y de Servicio al SEACE-SIRICC" },
+            { "id": "AO_10", "nombre": "AO 10 - Remision de Informacion sobre Ley de Transparencia" },
+            { "id": "AO_11", "nombre": "AO 11 - Administracion de Almacen" },
+            { "id": "AO_12", "nombre": "AO 12 - Administracion del Activo Fijo (Patrimonio)" },
+            { "id": "AO_13", "nombre": "AO 13 - Control y Seguimientos de los Servicios Basicos y Continuos, Inclusive, Vigilancia y Limpieza" },
+            { "id": "AO_14", "nombre": "AO 14 - Control y Supervision de la Flota Vehicular de la JNJ" },
+            { "id": "AO_15", "nombre": "AO 15 - Mantenimiento de la Infraestructura y Equipos del Edificio de la JNJ" }
         ]
     }
 ]
