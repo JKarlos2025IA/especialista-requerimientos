@@ -441,14 +441,7 @@ De existir observaciones, la JNJ las comunica al CONTRATISTA quien deberá subsa
                 sectionDiv.appendChild(createTextInput(`detallePago_${section.id}`, 'Detalle del Pago (Único, Parcial, a Cuenta):', 'INDICAR EL DETALLE DEL PAGO ÚNICO O PAGOS PARCIALES O PAGOS A CUENTA, SEGÚN CORRESPONDA', true));
                 sectionDiv.appendChild(createTextInput(`documentacionPago_${section.id}`, 'Otra Documentación Necesaria para el Pago:', section.content.split('Para efectos del pago de las contraprestaciones ejecutadas por el contratista, la JNJ debe contar con la siguiente documentación:')[1]?.trim() || '', true, '- Documento en el que conste la conformidad...'));
             } else if (section.title.includes('Confidencialidad')) {
-                const checkbox = createCheckbox(`incluirConfidencialidad_${section.id}`, 'Incluir Cláusula de Confidencialidad', false);
-                sectionDiv.appendChild(checkbox);
-                const textarea = createTextInput(`textoConfidencialidad_${section.id}`, 'Texto de la Cláusula de Confidencialidad:', section.content, true, '(De ser procedente, indicar la confidencialidad y reserva absoluta...)');
-                textarea.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    textarea.style.display = e.target.checked ? 'block' : 'none';
-                });
-                sectionDiv.appendChild(textarea);
+                sectionDiv.appendChild(createTextInput(`confidencialidad_${section.id}`, 'Confidencialidad (Editable):', section.content, true, 'Puede modificar el texto según sea necesario...'));
             } else if (section.title.includes('Penalidades') && !section.title.includes('Otras')) { // Penalidad por Mora
                 sectionDiv.appendChild(createTextInput(`penalidadMora_${section.id}`, 'Penalidad por Mora (Editable):', section.content, true, 'Puede modificar el texto según sea necesario...'));
             } else if (section.title.includes('Otras Penalidades')) {
