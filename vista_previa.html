@@ -227,8 +227,12 @@
                 <div class="datos-generales">
                     <table>
                         <tr>
+                            <td>Item:</td>
+                            <td>${datos.item || 'No especificado'}</td>
+                        </tr>
+                        <tr>
                             <td>Meta Presupuestaria:</td>
-                            <td>${obtenerNombreMeta(datos.metaPresupuestaria) || 'No especificado'}</td>
+                            <td>${datos.metaPresupuestaria || 'No especificado'}</td>
                         </tr>
                         <tr>
                             <td>Unidad de Organizacion:</td>
@@ -236,7 +240,7 @@
                         </tr>
                         <tr>
                             <td>Actividad del POI:</td>
-                            <td>${obtenerNombresActividades(datos.actividadPOI) || 'No especificado'}</td>
+                            <td>${Array.isArray(datos.actividadPOI) ? datos.actividadPOI.join(', ') : (datos.actividadPOI || 'No especificado')}</td>
                         </tr>
                         <tr>
                             <td>Denominacion de la Contratacion:</td>
