@@ -450,16 +450,7 @@ De existir observaciones, la JNJ las comunica al CONTRATISTA quien deberá subsa
                 });
                 sectionDiv.appendChild(textarea);
             } else if (section.title.includes('Penalidades') && !section.title.includes('Otras')) { // Penalidad por Mora
-                const checkbox = createCheckbox(`incluirPenalidadMora_${section.id}`, 'Incluir Cláusula de Penalidad por Mora', true);
-                sectionDiv.appendChild(checkbox);
-                const p = document.createElement('p');
-                p.className = 'static-clause';
-                p.textContent = section.content;
-                sectionDiv.appendChild(p);
-                p.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    p.style.display = e.target.checked ? 'block' : 'none';
-                });
+                sectionDiv.appendChild(createTextInput(`penalidadMora_${section.id}`, 'Penalidad por Mora (Editable):', section.content, true, 'Puede modificar el texto según sea necesario...'));
             } else if (section.title.includes('Otras Penalidades')) {
                 sectionDiv.appendChild(createTextInput(`otrasPenalidadesDescripcion_${section.id}`, 'Descripción de Otras Penalidades:', section.content, true, '(De acuerdo al tipo de contratación el área usuaria podrá establecer otras penalidades...)'));
             } else if (section.title.includes('Resolución del Contrato')) {
