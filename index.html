@@ -1,38 +1,70 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistente de Requerimientos</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <h1>Asistente de Requerimientos</h1>
-    <div id="app-container">
-        <div id="initial-conditions-form">
-            <h2>Seleccione las Condiciones Iniciales</h2>
-            <form id="conditionsForm">
-                <div class="form-group">
-                    <label>Tipo de Contratación:</label>
-                    <div>
-                        <input type="radio" id="typeService" name="contractType" value="Servicio">
-                        <label for="typeService">Servicio</label>
+    <div class="header-container">
+        <h1>Asistente de Requerimientos</h1>
+        <button id="btnTogglePreview" class="btn-toggle-preview">👁️ Ver Hoja / Vista Previa</button>
+    </div>
+    <div class="main-layout">
+        <!-- Columna Izquierda: Formulario -->
+        <div id="app-container" class="editor-pane">
+            <div id="initial-conditions-form">
+                <h2>Seleccione las Condiciones Iniciales</h2>
+                <form id="conditionsForm">
+                    <div class="form-group">
+                        <label>Tipo de Contratación:</label>
+                        <div>
+                            <input type="radio" id="typeService" name="contractType" value="Servicio">
+                            <label for="typeService">Servicio</label>
+                        </div>
+                        <div>
+                            <input type="radio" id="typeGood" name="contractType" value="Bien">
+                            <label for="typeGood">Bien</label>
+                        </div>
                     </div>
-                    <div>
-                        <input type="radio" id="typeGood" name="contractType" value="Bien">
-                        <label for="typeGood">Bien</label>
+
+                    <div class="form-group">
+                        <label for="estimatedAmount">Monto Estimado (S/):</label>
+                        <input type="number" id="estimatedAmount" name="estimatedAmount" min="0" step="0.01">
                     </div>
+
+                    <div id="validationMessages" class="error-message"></div>
+
+                    <button type="submit" id="nextButton">Siguiente</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Vista Previa en Vivo -->
+        <div id="preview-pane" class="preview-pane">
+            <div class="preview-header">
+                <h3>Vista Previa del Documento</h3>
+                <div class="preview-actions">
+                    <button id="btnDownloadPdf" class="btn-mini" title="Descargar PDF/Imprimir">🖨️</button>
+                    <button id="btnDownloadWord" class="btn-mini" title="Descargar Word">📝</button>
+                    <button id="btnDownloadJson" class="btn-mini" title="Descargar JSON">💾</button>
                 </div>
-
-                <div class="form-group">
-                    <label for="estimatedAmount">Monto Estimado (S/):</label>
-                    <input type="number" id="estimatedAmount" name="estimatedAmount" min="0" step="0.01">
+            </div>
+            <div id="live-preview-content" class="document-paper">
+                <div class="doc-header">
+                    <h2>TERMINOS DE REFERENCIA</h2>
+                    <p class="doc-code">Codigo: PS 04 01 01 - FORM 01</p>
                 </div>
-
-                <div id="validationMessages" class="error-message"></div>
-
-                <button type="submit" id="nextButton">Siguiente</button>
-            </form>
+                <div id="doc-body">
+                    <p class="placeholder-text">Complete el formulario para ver la vista previa aquí...</p>
+                </div>
+                <div class="doc-footer">
+                    <p>Junta Nacional de Justicia</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -47,12 +79,32 @@
             </div>
             <div class="form-group">
                 <label for="clausulaContenido">Contenido:</label>
-                <textarea id="clausulaContenido" rows="6" placeholder="Escriba el contenido de la cláusula..."></textarea>
+                <textarea id="clausulaContenido" rows="6"
+                    placeholder="Escriba el contenido de la cláusula..."></textarea>
             </div>
             <button id="btnGuardarClausula" class="btn-primary">Agregar Cláusula</button>
         </div>
     </div>
 
+    <!-- Modal para agregar NUEVA SECCIÓN PRINCIPAL -->
+    <div id="modalNuevaSeccion" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeModalSeccion">&times;</span>
+            <h3>Agregar Nueva Sección Principal</h3>
+            <div class="form-group">
+                <label for="newSectionTitle">Título de la Sección:</label>
+                <input type="text" id="newSectionTitle" placeholder="Ej: ANTECEDENTES">
+            </div>
+            <div class="form-group">
+                <label for="newSectionContent">Contenido Principal:</label>
+                <textarea id="newSectionContent" rows="6"
+                    placeholder="Escriba el contenido principal de esta sección..."></textarea>
+            </div>
+            <button id="btnGuardarNuevaSeccion" class="btn-primary">Guardar y Agregar Sección</button>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
+
 </html>

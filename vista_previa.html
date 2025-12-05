@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +14,9 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+            background-color: #121212;
+            /* Fondo oscuro para pantalla */
+            color: #e0e0e0;
             padding: 20px;
         }
 
@@ -22,7 +25,7 @@
             padding: 20px;
             margin-bottom: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             display: flex;
             gap: 15px;
             justify-content: center;
@@ -39,7 +42,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .btn-volver {
@@ -58,11 +61,13 @@
         }
 
         .documento {
-            background: white;
+            background: #1e1e1e;
+            /* Papel oscuro */
+            color: #e0e0e0;
             max-width: 210mm;
             margin: 0 auto;
             padding: 20mm;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             min-height: 297mm;
         }
 
@@ -85,48 +90,35 @@
         }
 
         .datos-generales {
-            background: #f8f9fa;
+            background: #2d2d2d;
             padding: 15px;
             margin-bottom: 20px;
-            border-left: 4px solid #007bff;
-        }
-
-        .datos-generales table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .datos-generales td {
-            padding: 8px;
-            border-bottom: 1px solid #dee2e6;
+            border-left: 4px solid #4dabf7;
         }
 
         .datos-generales td:first-child {
             font-weight: bold;
             width: 40%;
-            color: #495057;
-        }
-
-        .seccion {
-            margin-bottom: 25px;
-            page-break-inside: avoid;
+            color: #4dabf7;
         }
 
         .seccion-titulo {
-            background: #007bff;
-            color: white;
-            padding: 10px 15px;
+            background: #2d2d2d;
+            color: #4dabf7;
+            padding: 10px 0;
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 10px;
+            border-bottom: 1px solid #444;
         }
 
         .seccion-contenido {
-            padding: 15px;
-            background: #fafafa;
-            border: 1px solid #e0e0e0;
+            padding: 10px 0;
+            background: transparent;
+            border: none;
             line-height: 1.6;
             text-align: justify;
+            color: #ccc;
         }
 
         .subseccion {
@@ -163,14 +155,13 @@
         @media print {
             body {
                 background: white;
+                color: black;
                 padding: 0;
             }
 
-            .no-print {
-                display: none !important;
-            }
-
             .documento {
+                background: white;
+                color: black;
                 box-shadow: none;
                 margin: 0;
                 padding: 15mm;
@@ -182,6 +173,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="no-print">
         <button class="btn btn-volver" onclick="volverFormulario()">Volver al Formulario</button>
@@ -222,107 +214,84 @@
             const contenedor = document.getElementById('contenido-documento');
             let html = '';
 
-            // Datos Generales
-            html += `
-                <div class="datos-generales">
-                    <table>
-                        <tr>
-                            <td>Item:</td>
-                            <td>${datos.item || 'No especificado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Meta Presupuestaria:</td>
-                            <td>${datos.metaPresupuestaria || 'No especificado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Unidad de Organizacion:</td>
-                            <td>${datos.unidadOrganizacion || 'No especificado'}</td>
-                        </tr>
-                        <tr>
-                            <td>Actividad del POI:</td>
-                            <td>${Array.isArray(datos.actividadPOI) ? datos.actividadPOI.join(', ') : (datos.actividadPOI || 'No especificado')}</td>
-                        </tr>
-                        <tr>
-                            <td>Denominacion de la Contratacion:</td>
-                            <td>${datos.denominacionContratacion || 'No especificado'}</td>
-                        </tr>
-                    </table>
-                </div>
-            `;
+            // 1. Datos Generales
+            if (datos.meta) {
+                html += `
+                    <div class="datos-generales">
+                        <table>
+                            <tr>
+                                <td>Item:</td>
+                                <td>${datos.meta.item || 'No especificado'}</td>
+                            </tr>
+                            <tr>
+                                <td>Meta Presupuestaria:</td>
+                                <td>${datos.meta.metaPresupuestariaTexto || datos.meta.metaPresupuestaria || 'No especificado'}</td>
+                            </tr>
+                            <tr>
+                                <td>Unidad de Organizacion:</td>
+                                <td>${datos.meta.unidadOrganizacion || 'No especificado'}</td>
+                            </tr>
+                            <tr>
+                                <td>Actividad del POI:</td>
+                                <td>${Array.isArray(datos.meta.actividadPOI) ? datos.meta.actividadPOI.join(', ') : (datos.meta.actividadPOI || 'No especificado')}</td>
+                            </tr>
+                            <tr>
+                                <td>Denominacion de la Contratacion:</td>
+                                <td>${datos.meta.denominacionContratacion || 'No especificado'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            }
 
-            // Mapeo de campos dinámicos a títulos legibles
-            const camposMap = {
-                // Sección 1
-                'content_1__finalidad_publica': { num: '1', titulo: 'Finalidad Publica' },
-                // Sección 2
-                'content_2__antecedentes': { num: '2', titulo: 'Antecedentes' },
-                // Sección 3
-                'objetivoGeneral_3__objetivo_de_la_contratacion': { num: '3.1', titulo: 'Objetivo General' },
-                'objetivoEspecifico_3__objetivo_de_la_contratacion': { num: '3.2', titulo: 'Objetivo Especifico' },
-                // Sección 4
-                'content_4__alcance_y_descripcion_del_servicio': { num: '4', titulo: 'Alcance y Descripcion del Servicio' },
-                // Sección 5
-                'content_5__requisitos_del_proveedor_y_o_personal': { num: '5', titulo: 'Requisitos del Proveedor y/o Personal' },
-                // Sección 6
-                'content_6__perfeccionamiento': { num: '6', titulo: 'Perfeccionamiento' },
-                // Sección 7
-                'lugarEjecucion_7__lugar_y_plazo_de_ejecucion': { num: '7.1', titulo: 'Lugar de Ejecución' },
-                'plazoEjecucion_7__lugar_y_plazo_de_ejecucion': { num: '7.2', titulo: 'Plazo de Ejecución' },
-                'plazoPersonalizado_7__lugar_y_plazo_de_ejecucion': { num: '7.3', titulo: 'Plazo Personalizado' },
-                // Sección 8
-                'tipoEntregables_8__resultados_esperados_entregables': { num: '8.1', titulo: 'Tipo de Entregables' },
-                'entregablesDescripcion_8__resultados_esperados_entregables': { num: '8.2', titulo: 'Descripción Detallada de Entregables' },
-                // Sección 9
-                'conformidad_9__conformidad': { num: '9', titulo: 'Conformidad' },
-                // Sección 10
-                'monedaPago_10__forma_y_condiciones_de_pago': { num: '10.1', titulo: 'Moneda de Pago' },
-                'detallePago_10__forma_y_condiciones_de_pago': { num: '10.2', titulo: 'Detalle del Pago' },
-                'documentacionPago_10__forma_y_condiciones_de_pago': { num: '10.3', titulo: 'Documentación para el Pago' },
-                // Sección 11
-                'confidencialidad_11__confidencialidad': { num: '11', titulo: 'Confidencialidad' },
-                // Sección 12
-                'penalidadMora_12__penalidades': { num: '12', titulo: 'Penalidades por Mora' },
-                // Sección 13
-                'otrasPenalidadesDescripcion_13__otras_penalidades': { num: '13', titulo: 'Otras Penalidades' },
-                // Sección 14
-                'content_14__resolucion_del_contrato': { num: '14', titulo: 'Resolución del Contrato' },
-                // Sección 15
-                'content_15__clausula_garantias': { num: '15', titulo: 'Cláusula Garantías' },
-                // Sección 16
-                'content_16__clausula_gestion_de_riesgos': { num: '16', titulo: 'Cláusula Gestión de Riesgos' },
-                // Sección 17
-                'content_17__clausula_anticorrupcion_y_antisoborno': { num: '17', titulo: 'Cláusula Anticorrupción y Antisoborno' },
-                // Sección 18
-                'content_18__clausula_solucion_de_controversias': { num: '18', titulo: 'Cláusula Solución de Controversias' }
-            };
+            // 2. Secciones Dinámicas
+            if (datos.secciones && Array.isArray(datos.secciones)) {
+                let contadorSeccion = 1;
 
-            // Generar secciones dinámicamente
-            Object.keys(camposMap).forEach(campo => {
-                const info = camposMap[campo];
-                const valor = datos[campo];
+                datos.secciones.forEach(seccion => {
+                    if (!seccion.isApplicable) return; // Saltar secciones "No Aplica"
 
-                if (valor && valor !== '' && valor !== 'No especificado') {
                     html += `<div class="seccion">`;
-                    html += `<div class="seccion-titulo">${info.titulo}</div>`;
-                    html += `<div class="seccion-contenido">`;
-                    html += `<p>${valor}</p>`;
-                    html += `</div></div>`;
-                }
-            });
 
-            // Agregar cláusulas personalizadas (campos que comienzan con "custom_")
-            Object.keys(datos).forEach(key => {
-                if (key.startsWith('custom_')) {
-                    const valor = datos[key];
-                    if (valor && valor !== '') {
-                        html += `<div class="seccion">`;
-                        html += `<div class="seccion-titulo">Cláusula Personalizada</div>`;
-                        html += `<div class="seccion-contenido">`;
-                        html += `<p>${valor}</p>`;
-                        html += `</div></div>`;
+                    // Título con numeración dinámica (1., 2., 3...)
+                    html += `<div class="seccion-titulo">${contadorSeccion}. ${seccion.title}</div>`;
+
+                    html += `<div class="seccion-contenido">`;
+
+                    // Contenido principal
+                    if (seccion.content) {
+                        // Convertir saltos de línea en párrafos
+                        const parrafos = seccion.content.split('\n\n');
+                        parrafos.forEach(p => {
+                            if (p.trim()) html += `<p>${p.trim()}</p>`;
+                        });
                     }
-                }
-            });
+
+                    // Subsecciones
+                    if (seccion.subsecciones && seccion.subsecciones.length > 0) {
+                        let contadorSub = 1;
+                        seccion.subsecciones.forEach(sub => {
+                            html += `<div class="subseccion">`;
+                            html += `<div class="subseccion-titulo">${contadorSeccion}.${contadorSub} ${sub.title}</div>`;
+                            html += `<p>${sub.content || ''}</p>`;
+                            html += `</div>`;
+                            contadorSub++;
+                        });
+                    }
+
+                    // Condiciones Adicionales (sin numeración de subtítulo, solo texto agregado)
+                    if (seccion.additionalConditions && seccion.additionalConditions.length > 0) {
+                        seccion.additionalConditions.forEach(cond => {
+                            html += `<p style="margin-top: 10px;">${cond}</p>`;
+                        });
+                    }
+
+                    html += `</div></div>`;
+                    contadorSeccion++;
+                });
+            } else {
+                html += '<p>No se encontraron secciones para generar.</p>';
+            }
 
             contenedor.innerHTML = html;
 
@@ -392,4 +361,5 @@
         generarDocumento();
     </script>
 </body>
+
 </html>

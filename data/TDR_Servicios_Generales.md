@@ -49,13 +49,21 @@
 ## 6. Perfeccionamiento
 **Contenido:** Se perfecciona con la notificacion de la orden de servicio via Pladicop o con la suscripcion de un contrato (obligatorio si la ejecucion supera el año fiscal) o con la notificacion via correo electronico de la orden de servicio.
 
-## 7. Lugar y Plazo de Ejecucion
+## 7. Lugar y Plazo de Ejecución
 
 ### 7.1 Lugar
 **Instructivo:** El area usuaria debera señalar el lugar donde se efectuaran las prestaciones
+**Opciones:**
++ Av. Paseo de la República N° 3285 - San Isidro
++ Av. Larco N° 3285 - Miraflores
++ Otros (para escribir)
 
 ### 7.2 Plazo
 **Instructivo:** El area usuaria debera expresar el plazo de la prestacion en dias calendario, indicando el inicio del plazo de ejecucion de la prestacion. En caso que se establezca condiciones previas a la ejecucion del servicio, se debera precisar dicho plazo.
+**Opciones:**
++ El servicio inicia a partir del día siguiente de notificada la orden de servicio
++ El servicio inicia a partir del día de notificada la orden de servicio y suscripción del acta de inicio
++ Otros (para escribir)
 
 ## 8. Resultados Esperados-Entregables
 **Instructivo:** El area usuaria debera indicar el numero de entregables, el contenido de cada entregable, los plazos de presentacion y condiciones relevantes para cumplir con cada entregable. Asimismo, en caso corresponda que el proveedor presente informes o documentos como parte de los entregables, se podra señalar el medio en que seran presentados, asi por ejemplo podran ser presentados fisicamente o en medios magneticos (CD, USB, etc.).
@@ -120,6 +128,10 @@ Las penalidades se deducen de los pagos a cuenta, pagos parciales o del pago fin
 **Contenido:** Cualquiera de las partes puede resolver el contrato, de conformidad con el numeral 68.1 del articulo 68 de la Ley N 32069, Ley General de Contrataciones Publicas.
 
 De encontrarse en alguno de los supuestos de resolucion del contrato, LAS PARTES procederan de acuerdo con lo establecido en el articulo 122 del Reglamento de la Ley N 32069, Ley General de Contrataciones Publicas, aprobado mediante Decreto Supremo N 009-2025-EF.
+**Opciones:**
++ La resolucion se dara por incumplimiento de obligaciones esenciales
++ La resolucion procedera por acumulacion del monto maximo de penalidad
++ Otros (para escribir)
 
 ## 15. Clausula Garantias
 **Contenido:** No aplica.

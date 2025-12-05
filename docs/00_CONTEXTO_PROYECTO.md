@@ -400,6 +400,18 @@ python -m http.server 8000
 **Por que:** Datos se limpian al cerrar navegador (mas seguro), simple de usar
 **Ver:** 02_DECISIONES.md#decision-3-sessionstorage
 
+### Decision 4: Sintaxis Dinámica para Opciones en Markdown
+**Fecha:** 2025-12-04
+**Que se decidio:** Implementar sintaxis `**Opciones:**` y listas con `+` en el Markdown para generar radio buttons automáticamente.
+**Por que:** Permite al usuario definir listas de selección y opciones "Otros" directamente desde la plantilla sin tocar código JS. Además, estas secciones se renderizan con un estilo "Dark Mode" distintivo.
+**Ejemplo:**
+```markdown
+**Opciones:**
++ Opción A
++ Opción B
++ Otros (para escribir)
+```
+
 ---
 
 ## 🎓 RECURSOS Y REFERENCIAS

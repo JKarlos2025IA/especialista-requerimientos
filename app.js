@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allMetasData = [];
     let allServiciosData = [];
     let clausulasPersonalizadas = []; // Array para almacenar cláusulas custom
+    let globalParsedSections = []; // Para acceder a la estructura desde cualquier lugar
 
     // Verificar si hay datos temporales del sessionStorage (regreso de vista previa)
     const datosTemporales = sessionStorage.getItem('tdr_datos_temporales');
@@ -341,6 +342,37 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentSection.capturandoContenido = false;
                     }
                 }
+                // Detectar opciones
+                else if (line.startsWith('**Opciones:**')) {
+                    if (currentSection) {
+                        // Determinar si es para la sección principal o una subsección
+                        let targetObj = currentSection;
+                        if (currentSection.subsecciones.length > 0) {
+                            targetObj = currentSection.subsecciones[currentSection.subsecciones.length - 1];
+                        }
+                        targetObj.options = [];
+                        targetObj.capturandoOpciones = true;
+                        targetObj.capturandoContenido = false; // Dejar de capturar contenido
+                    }
+                }
+                // Detectar items de opciones (+)
+                else if (line.startsWith('+') && currentSection) {
+                    let targetObj = currentSection;
+                    if (currentSection.subsecciones.length > 0) {
+                        targetObj = currentSection.subsecciones[currentSection.subsecciones.length - 1];
+                    }
+
+                    if (targetObj.capturandoOpciones) {
+                        const optionText = line.replace('+', '').trim();
+                        // Crear valor simple para el value (slug)
+                        const optionValue = optionText.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
+                        targetObj.options.push({
+                            value: optionValue,
+                            text: optionText,
+                            isOther: optionText.toLowerCase().includes('otros (para escribir)') || optionText.toLowerCase().includes('otro (especifique)')
+                        });
+                    }
+                }
                 // Acumular contenido de parrafos
                 else if (line && !line.startsWith('#') && !line.startsWith('**') && currentSection) {
                     // Si estamos capturando contenido después de **Contenido:**
@@ -355,10 +387,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Si no hay instructivo ni contenido definido, acumular
                     else if (currentSection.subsecciones.length > 0) {
                         const lastSub = currentSection.subsecciones[currentSection.subsecciones.length - 1];
-                        if (!lastSub.instructivo && !lastSub.content) {
+                        // Si estamos capturando opciones, ignorar texto plano que no empiece con +
+                        if (!lastSub.capturandoOpciones && !lastSub.instructivo && !lastSub.content) {
                             lastSub.content += (lastSub.content ? ' ' : '') + line;
                         }
-                    } else if (!currentSection.instructivo && !currentSection.content) {
+                    } else if (!currentSection.instructivo && !currentSection.content && !currentSection.capturandoOpciones) {
                         currentSection.content += (currentSection.content ? ' ' : '') + line;
                     }
                 }
@@ -370,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             console.log('Secciones parseadas:', sections.length);
+            globalParsedSections = sections; // Guardar referencia global
             return sections;
 
         } catch (error) {
@@ -404,54 +438,168 @@ document.addEventListener('DOMContentLoaded', () => {
         parsedSections.forEach((section, index) => {
             console.log('Procesando seccion:', section.id, section.title);
 
-            // Botón "+" ANTES de cada sección (excepto la primera)
-            if (index > 0) {
-                const btnAdd = document.createElement('button');
-                btnAdd.className = 'btn-add-clause';
-                btnAdd.textContent = '+';
-                btnAdd.type = 'button';
-                btnAdd.setAttribute('data-insert-before', section.id);
-                formElement.appendChild(btnAdd);
+            // Crear contenedor del item de acordeón
+            const accordionItem = document.createElement('div');
+            accordionItem.className = 'accordion-item';
+            accordionItem.id = `accordion-${section.id}`;
+
+            // Crear encabezado del acordeón
+            const accordionHeader = document.createElement('div');
+            accordionHeader.className = 'accordion-header';
+
+            // Botón "+" en el Header (Para agregar cláusulas adicionales)
+            const btnHeaderAdd = document.createElement('button');
+            btnHeaderAdd.textContent = '+';
+            btnHeaderAdd.className = 'btn-header-add';
+            btnHeaderAdd.title = 'Agregar Cláusula Adicional';
+            // Evento se define más abajo cuando contentWrapper exista
+
+            // Título (Numerales en Azul) - QUITANDO NUMERACIÓN AUTOMÁTICA DEL MARKDOWN
+            const title = document.createElement('h3');
+            // Regex para quitar "1. ", "2.1 ", etc. al inicio
+            title.textContent = section.title.replace(/^\d+(\.\d+)*\s*/, '');
+
+            accordionHeader.appendChild(btnHeaderAdd); // Insertar botón + antes del título
+            accordionHeader.appendChild(title);
+
+            // Icono de flecha
+            const icon = document.createElement('span');
+            icon.className = 'accordion-icon';
+            icon.textContent = '▼';
+            accordionHeader.appendChild(icon);
+
+            // Evento click para abrir/cerrar
+            accordionHeader.addEventListener('click', (e) => {
+                // Si el click fue en el botón +, no hacer toggle aquí (se maneja en su propio evento)
+                if (e.target === btnHeaderAdd) return;
+
+                // Cerrar otros (opcional, si queremos comportamiento de acordeón estricto)
+                // document.querySelectorAll('.accordion-item').forEach(item => {
+                //     if (item !== accordionItem) item.classList.remove('active');
+                // });
+                accordionItem.classList.toggle('active');
+            });
+
+            accordionItem.appendChild(accordionHeader);
+
+            // Crear contenido del acordeón
+            const accordionContent = document.createElement('div');
+            accordionContent.className = 'accordion-content';
+
+            // Opción "No Aplica"
+            const noAplicaContainer = document.createElement('div');
+            noAplicaContainer.className = 'no-aplica-container';
+            const noAplicaCheckbox = document.createElement('input');
+            noAplicaCheckbox.type = 'checkbox';
+            noAplicaCheckbox.id = `noAplica_${section.id}`;
+            noAplicaCheckbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    contentWrapper.classList.add('section-disabled');
+                    // Deshabilitar inputs internos
+                    contentWrapper.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+                } else {
+                    contentWrapper.classList.remove('section-disabled');
+                    // Habilitar inputs internos
+                    contentWrapper.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
+                }
+            });
+            const noAplicaLabel = document.createElement('label');
+            noAplicaLabel.htmlFor = `noAplica_${section.id}`;
+            noAplicaLabel.textContent = 'No Aplica / Eliminar esta sección';
+            noAplicaContainer.appendChild(noAplicaCheckbox);
+            noAplicaContainer.appendChild(noAplicaLabel);
+            accordionContent.appendChild(noAplicaContainer);
+
+            // Wrapper para el contenido real (para poder deshabilitarlo)
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'section-content-wrapper';
+            accordionContent.appendChild(contentWrapper);
+
+            // Lógica del Botón + del Header
+            btnHeaderAdd.onclick = (e) => {
+                e.stopPropagation();
+                accordionItem.classList.add('active'); // Abrir si está cerrado
+
+                // Crear Cláusula Adicional
+                const clauseWrapper = document.createElement('div');
+                clauseWrapper.className = 'dynamic-clause-wrapper';
+                clauseWrapper.style.marginTop = '15px';
+                clauseWrapper.style.borderLeft = '2px solid #666';
+                clauseWrapper.style.paddingLeft = '10px';
+                clauseWrapper.style.background = 'rgba(255, 255, 255, 0.05)';
+                clauseWrapper.style.padding = '10px';
+
+                const numContainer = document.createElement('div');
+                numContainer.style.marginBottom = '5px'; numContainer.style.display = 'flex'; numContainer.style.alignItems = 'center';
+                const numCheck = document.createElement('input');
+                numCheck.type = 'checkbox'; numCheck.className = 'dynamic-clause-numbered'; numCheck.checked = true; numCheck.id = `chk_${Date.now()}`;
+                const numLabel = document.createElement('label');
+                numLabel.htmlFor = numCheck.id; numLabel.textContent = 'Numerar (x.y)'; numLabel.style.marginLeft = '5px'; numLabel.style.color = '#ccc';
+                numContainer.appendChild(numCheck); numContainer.appendChild(numLabel);
+
+                const clTitleInput = document.createElement('input');
+                clTitleInput.type = 'text'; clTitleInput.className = 'dynamic-clause-title'; clTitleInput.placeholder = 'Título Cláusula Adicional'; clTitleInput.style.width = '100%'; clTitleInput.style.marginBottom = '5px'; clTitleInput.style.background = '#333'; clTitleInput.style.color = '#fff'; clTitleInput.style.border = '1px solid #555';
+
+                const clContentInput = document.createElement('textarea');
+                clContentInput.className = 'dynamic-clause-content'; clContentInput.rows = 3; clContentInput.placeholder = 'Contenido...'; clContentInput.style.width = '100%';
+
+                const btnRemoveCl = document.createElement('button');
+                btnRemoveCl.textContent = 'Eliminar';
+                btnRemoveCl.type = 'button'; btnRemoveCl.style.background = '#ff6b6b'; btnRemoveCl.style.color = 'white'; btnRemoveCl.style.border = 'none'; btnRemoveCl.style.marginTop = '5px';
+                btnRemoveCl.onclick = () => { clauseWrapper.remove(); updateLivePreview(); };
+
+                clauseWrapper.appendChild(numContainer); clauseWrapper.appendChild(clTitleInput); clauseWrapper.appendChild(clContentInput); clauseWrapper.appendChild(btnRemoveCl);
+
+                // Insertar antes del botón flotante inferior si existe, o al final
+                const btnFloating = contentWrapper.querySelector('.btn-add-floating');
+                if (btnFloating && btnFloating.parentElement.classList.contains('add-options-menu') === false) {
+                    // Ojo: btnFloating suele estar dentro de un div contenedor o suelto.
+                    // En mi implementación anterior, btnAdd se agregaba al final.
+                    // Mejor insertar antes del último hijo si es botón, o simplemente append.
+                    contentWrapper.insertBefore(clauseWrapper, null); // Al final por defecto
+                } else {
+                    contentWrapper.appendChild(clauseWrapper);
+                }
+
+                updateLivePreview();
+
+                // Scroll suave hacia la nueva cláusula
+                setTimeout(() => {
+                    clauseWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    clTitleInput.focus();
+                }, 100);
+            };
+
+            // Agregar instructivo si existe
+            if (section.instructivo) {
+                const instr = document.createElement('p');
+                instr.className = 'instructivo';
+                instr.textContent = section.instructivo;
+                contentWrapper.appendChild(instr);
             }
 
-            const sectionDiv = document.createElement('div');
-            sectionDiv.className = 'form-section';
-            sectionDiv.id = `section-${section.id}`;
-
-            const sectionHeader = document.createElement('h3');
-            // Quitar numeración del título (eliminar "1. ", "2. ", etc.)
-            const tituloSinNumero = section.title.replace(/^\d+\.\s*/, '');
-            sectionHeader.textContent = tituloSinNumero;
-            sectionDiv.appendChild(sectionHeader);
+            // --- Lógica de renderizado de controles (similar a la anterior pero dentro de contentWrapper) ---
+            const sectionDiv = contentWrapper; // Usamos contentWrapper como el contenedor de controles
 
             // Dynamically add controls based on section content and title
             if (section.id === 'general_data' || section.id === 'datos_generales') {
-                console.log('>>> Generando campos de DATOS GENERALES');
-                // Add "Item" with datalist for CUBSO search
-                sectionDiv.appendChild(createDatalistInput('item', 'Item (Servicio CUBSO):', allServiciosData, 'Buscar por código o descripción...', true)); // REQUERIDO
-
-                // Then Meta, Unidad, Actividad (existing dynamic logic)
-                sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta', false, true)); // REQUERIDO
+                // ... (Lógica existente para Datos Generales) ...
+                sectionDiv.appendChild(createDatalistInput('item', 'Item (Servicio CUBSO):', allServiciosData, 'Buscar por código o descripción...', true));
+                sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta', false, true));
                 const metaSelect = sectionDiv.querySelector('#metaPresupuestaria');
-
-                sectionDiv.appendChild(createTextInput('unidadOrganizacion', 'Unidad de Organización:', '', false, '', true)); // Readonly initially (auto-completa)
+                sectionDiv.appendChild(createTextInput('unidadOrganizacion', 'Unidad de Organización:', '', false, '', true));
                 const unidadInput = sectionDiv.querySelector('#unidadOrganizacion');
-
-                sectionDiv.appendChild(createSelectInput('actividadPOI', 'Actividad del POI:', [], '', 'Seleccione actividades', true, true)); // REQUERIDO
+                sectionDiv.appendChild(createSelectInput('actividadPOI', 'Actividad del POI:', [], '', 'Seleccione actividades', true, true));
                 const actividadSelect = sectionDiv.querySelector('#actividadPOI');
                 actividadSelect.setAttribute('multiple', 'true');
                 actividadSelect.setAttribute('size', '5');
-
-                sectionDiv.appendChild(createTextInput('denominacionContratacion', 'Denominación de la Contratación:', '', false, 'Ingrese la denominación del servicio', false, true)) // REQUERIDO
-
+                sectionDiv.appendChild(createTextInput('denominacionContratacion', 'Denominación de la Contratación:', '', false, 'Ingrese la denominación del servicio', false, true));
 
                 metaSelect.addEventListener('change', (event) => {
                     const selectedMetaId = event.target.value;
                     const selectedMeta = allMetasData.find(meta => meta.id === selectedMetaId);
-
                     unidadInput.value = selectedMeta ? selectedMeta.unidad : '';
-                    actividadSelect.innerHTML = ''; // Clear previous activities
-
+                    actividadSelect.innerHTML = '';
                     if (selectedMeta && selectedMeta.actividades) {
                         selectedMeta.actividades.forEach(act => {
                             const option = document.createElement('option');
@@ -462,163 +610,624 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-            } else if (section.title.includes('Finalidad Pública')) {
-                sectionDiv.appendChild(createTextInput(`finalidadPublica_${section.id}`, section.title + ':', section.content, true, '(Describir el interés público que desea satisfacer con la contratación)'));
-            } else if (section.title.includes('Antecedentes')) {
-                sectionDiv.appendChild(createTextInput(`antecedentes_${section.id}`, section.title + ':', section.content, true, '(Puede consignarse una breve descripción de los antecedentes considerados por el usuario para la determinación de la necesidad...)'));
-            } else if (section.title.includes('Objetivo')) {
-                const generalContent = section.content.split('3.2 Objetivo Específico')[0].replace('3.1 Objetivo General', '').trim();
-                const specificContent = section.content.split('3.2 Objetivo Específico')[1]?.trim() || '';
-                sectionDiv.appendChild(createTextInput(`objetivoGeneral_${section.id}`, 'Objetivo General:', generalContent, true, 'Identificar la finalidad general hacia la cual se deben dirigir los recursos y esfuerzos...'));
-                sectionDiv.appendChild(createTextInput(`objetivoEspecifico_${section.id}`, 'Objetivo Específico:', specificContent, true, 'Los objetivos específicos deben señalar con mayor precisión y detalle los propósitos concretos...'));
-            } else if (section.title.includes('Alcance y Descripción del Servicio')) {
-                sectionDiv.appendChild(createTextInput(`alcanceDescripcion_${section.id}`, section.title + ':', section.content, true, '(El área usuaria deberá Indicar el detalle de las actividades a desarrollar, así como el procedimiento a seguir...)'));
-            } else if (section.title.includes('Requisitos del Proveedor y/o Personal')) {
-                sectionDiv.appendChild(createTextInput(`requisitosProveedor_${section.id}`, section.title + ':', section.content, true, '(El área usuaria deberá precisar las características o condiciones mínimas que debe cumplir el proveedor...)'));
-            } else if (section.title.includes('Perfeccionamiento')) {
-                const options = [
-                    { value: 'notificacion_pladicop', text: 'Se perfecciona con la notificación de la orden de servicio vía Pladicop' },
-                    { value: 'suscripcion_contrato', text: 'Con la suscripción de un contrato' },
-                    { value: 'notificacion_correo', text: 'Con la notificación vía correo electrónico de la orden de servicio' },
-                    { value: 'otro', text: 'Otro (especifique)' }
-                ];
-                sectionDiv.appendChild(createRadioGroup(`perfeccionamiento_${section.id}`, section.title + ':', options, 'notificacion_pladicop'));
-                const otroInput = createTextInput(`perfeccionamientoOtro_${section.id}`, 'Especifique otro perfeccionamiento:', '', false, 'Ingrese aquí el detalle');
-                otroInput.style.display = 'none';
-                sectionDiv.appendChild(otroInput);
-                sectionDiv.querySelector(`#perfeccionamiento_${section.id}_otro`).addEventListener('change', (e) => {
-                    otroInput.style.display = e.target.checked ? 'block' : 'none';
-                });
-            } else if (section.title.includes('Lugar y Plazo de Ejecución')) {
-                // Select para Lugar de Ejecución
-                const opcionesLugar = [
-                    { value: 'instalaciones_entidad', text: 'En las instalaciones de la Junta Nacional de Justicia' },
-                    { value: 'instalaciones_proveedor', text: 'En las instalaciones del proveedor' },
-                    { value: 'modalidad_remota', text: 'Modalidad remota/virtual' },
-                    { value: 'modalidad_mixta', text: 'Modalidad mixta (presencial y remota)' },
-                    { value: 'otro', text: 'Otro (especifique)' }
-                ];
-                sectionDiv.appendChild(createSelectInput(`lugarEjecucion_${section.id}`, 'Lugar de Ejecución:', opcionesLugar, '', 'Seleccione el lugar de ejecución', false, true)); // REQUERIDO
-                const otroLugarInput = createTextInput(`lugarEjecucionOtro_${section.id}`, 'Especifique otro lugar:', '', false, 'Indique el lugar específico');
-                otroLugarInput.style.display = 'none';
-                sectionDiv.appendChild(otroLugarInput);
-                sectionDiv.querySelector(`#lugarEjecucion_${section.id}`).addEventListener('change', (e) => {
-                    otroLugarInput.style.display = e.target.value === 'otro' ? 'block' : 'none';
-                });
+                // Datos generales siempre visible y sin "No Aplica"
+                accordionItem.classList.add('active');
+                noAplicaContainer.style.display = 'none';
 
-                // Select para Plazo de Ejecución
-                const opcionesPlazo = [
-                    { value: 'dia_siguiente', text: 'El servicio inicia a partir del día siguiente de notificada la orden de servicio' },
-                    { value: 'suscripcion_acta', text: 'El servicio inicia a partir del día de notificada la orden de servicio y suscripción del acta de inicio' },
-                    { value: 'personalizado', text: 'Personalizado (especifique)' }
-                ];
-                sectionDiv.appendChild(createSelectInput(`plazoEjecucion_${section.id}`, 'Plazo de Ejecución:', opcionesPlazo, 'dia_siguiente', 'Seleccione el plazo de ejecución', false, true)); // REQUERIDO
-                const personalizadoInput = createTextInput(`plazoPersonalizado_${section.id}`, 'Especifique plazo personalizado:', '', false, 'Indique aquí el inicio del plazo de ejecución');
-                personalizadoInput.style.display = 'none';
-                sectionDiv.appendChild(personalizadoInput);
-                sectionDiv.querySelector(`#plazoEjecucion_${section.id}`).addEventListener('change', (e) => {
-                    personalizadoInput.style.display = e.target.value === 'personalizado' ? 'block' : 'none';
-                });
-            } else if (section.title.includes('Resultados Esperados-Entregables')) {
-                // Select para tipo de entregables
-                const opcionesEntregables = [
-                    { value: 'informe_unico', text: 'Informe único al finalizar el servicio' },
-                    { value: 'informes_mensuales', text: 'Informes mensuales de avance' },
-                    { value: 'informes_quincenales', text: 'Informes quincenales de avance' },
-                    { value: 'personalizado', text: 'Personalizado (describa los entregables)' }
-                ];
-                sectionDiv.appendChild(createSelectInput(`tipoEntregables_${section.id}`, 'Tipo de Entregables:', opcionesEntregables, '', 'Seleccione el tipo de entregables', false, true)); // REQUERIDO
+            } else if (section.options && section.options.length > 0) {
+                // SECCIÓN CON OPCIONES DINÁMICAS
+                const radioGroup = createRadioGroup(`opciones_${section.id}`, 'Seleccione una opción:', section.options, section.options[0].value);
+                sectionDiv.appendChild(radioGroup);
 
-                // Textarea para descripción detallada (se muestra siempre pero es obligatorio si elige "personalizado")
-                sectionDiv.appendChild(createTextInput(`entregablesDescripcion_${section.id}`, 'Descripción Detallada de Entregables:', section.content, true, 'Indique número de entregables, contenido específico, plazos de entrega y condiciones relevantes...'));
-            } else if (section.title.includes('Conformidad')) {
-                const textoConformidad = `La conformidad del servicio será otorgada por el área usuaria o unidad orgánica responsable del seguimiento y supervisión del servicio contratado, dentro del plazo de siete (7) días hábiles contados a partir de la presentación del/los entregables por parte del contratista.
+                const otherOption = section.options.find(opt => opt.isOther);
+                if (otherOption) {
+                    const otherInputId = `opcionesOtro_${section.id}`;
+                    const otherInput = createTextInput(otherInputId, 'Especifique:', '', false, 'Ingrese el detalle aquí');
+                    otherInput.style.display = 'none';
+                    sectionDiv.appendChild(otherInput);
 
-De existir observaciones, la JNJ las comunica al CONTRATISTA quien deberá subsanarlas en un plazo no mayor a tres (03) días hábiles. El cómputo del plazo para la conformidad se suspende desde la fecha en que se comunica la observación hasta que el CONTRATISTA subsana la misma.`;
-                sectionDiv.appendChild(createTextInput(`conformidad_${section.id}`, 'Conformidad del Servicio (Editable):', textoConformidad, true, 'Puede modificar el texto según sea necesario...'));
-            } else if (section.title.includes('Forma y Condiciones de Pago')) {
-                sectionDiv.appendChild(createTextInput(`monedaPago_${section.id}`, 'Moneda de Pago:', 'INDICAR MONEDA'));
-                sectionDiv.appendChild(createTextInput(`detallePago_${section.id}`, 'Detalle del Pago (Único, Parcial, a Cuenta):', 'INDICAR EL DETALLE DEL PAGO ÚNICO O PAGOS PARCIALES O PAGOS A CUENTA, SEGÚN CORRESPONDA', true));
-                sectionDiv.appendChild(createTextInput(`documentacionPago_${section.id}`, 'Otra Documentación Necesaria para el Pago:', section.content.split('Para efectos del pago de las contraprestaciones ejecutadas por el contratista, la JNJ debe contar con la siguiente documentación:')[1]?.trim() || '', true, '- Documento en el que conste la conformidad...'));
-            } else if (section.title.includes('Confidencialidad')) {
-                const textoConfidencialidad = `a) EL PROVEEDOR se compromete a mantener en reserva y a no revelar a terceros, sin previa autorización escrita de la JNJ, información que le sea suministrada por ésta última y/o sea obtenida en el ejercicio de las actividades a desarrollarse o conozca directa o indirectamente durante el proceso de selección (procedimientos de selección o contrato menor) o para la realización de sus tareas, excepto en cuanto resultare estrictamente necesario para el cumplimiento del contrato.
+                    const radios = sectionDiv.querySelectorAll(`input[name="opciones_${section.id}"]`);
+                    radios.forEach(radio => {
+                        radio.addEventListener('change', (e) => {
+                            if (e.target.value === otherOption.value) {
+                                otherInput.style.display = 'block';
+                                otherInput.querySelector('input').focus();
+                            } else {
+                                otherInput.style.display = 'none';
+                            }
+                        });
+                    });
+                }
+            } else if (section.subsecciones && section.subsecciones.length > 0) {
+                // SECCIÓN CON SUBSECCIONES
+                section.subsecciones.forEach(sub => {
+                    const subTitle = document.createElement('h4');
+                    subTitle.textContent = sub.title;
+                    subTitle.style.color = '#4dabf7'; // Azul
+                    subTitle.style.marginTop = '20px';
+                    sectionDiv.appendChild(subTitle);
 
-b) EL PROVEEDOR deberá mantener a perpetuidad la confidencialidad y reserva absoluta en el manejo de cualquier información y documentación a la que se tenga acceso a consecuencia del procedimiento de selección y la ejecución del Contrato, quedando prohibida su revelación a terceros.
+                    if (sub.instructivo) {
+                        const instr = document.createElement('p');
+                        instr.className = 'instructivo';
+                        instr.textContent = sub.instructivo;
+                        sectionDiv.appendChild(instr);
+                    }
 
-c) Dicha obligación comprende la información que se entrega, como también la que se genera durante la realización de las actividades previas a la ejecución del Contrato, durante su ejecución y la producida una vez que se haya concluido el Contrato.
+                    if (sub.options && sub.options.length > 0) {
+                        const subId = sub.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                        const radioGroup = createRadioGroup(`opciones_${section.id}_${subId}`, '', sub.options, sub.options[0].value);
+                        sectionDiv.appendChild(radioGroup);
 
-d) Dicha información puede consistir en informes, recomendaciones, cálculos, documentos y demás datos compilados o recibidos por EL PROVEEDOR.
+                        // Lógica "Otros" para subsecciones
+                        const otherOption = sub.options.find(opt => opt.isOther);
+                        if (otherOption) {
+                            const otherInputId = `opcionesOtro_${section.id}_${subId}`;
+                            const otherInput = createTextInput(otherInputId, 'Especifique:', '', false, 'Ingrese el detalle aquí');
+                            otherInput.style.display = 'none';
+                            sectionDiv.appendChild(otherInput);
 
-e) Asimismo, aun cuando sea de índole pública, la información vinculada al procedimiento de contratación, incluyendo su ejecución y conclusión, no podrá ser utilizada por EL PROVEEDOR para fines publicitarios o de difusión por cualquier medio sin obtener la autorización correspondiente de la JNJ.
+                            const radios = sectionDiv.querySelectorAll(`input[name="opciones_${section.id}_${subId}"]`);
+                            radios.forEach(radio => {
+                                radio.addEventListener('change', (e) => {
+                                    if (e.target.value === otherOption.value) {
+                                        otherInput.style.display = 'block';
+                                        otherInput.querySelector('input').focus();
+                                    } else {
+                                        otherInput.style.display = 'none';
+                                    }
+                                });
+                            });
+                        }
 
-f) Los documentos técnicos, estudios, informes, grabaciones, películas, programas informáticos y todos los demás que formen parte de su oferta y que se deriven de las prestaciones contratadas serán de exclusiva propiedad de la JNJ. En tal sentido, queda claramente establecido que EL PROVEEDOR no tiene ningún derecho sobre los referidos productos, ni puede venderlos, cederlos o utilizarlos para otros fines que no sean los que se deriven de la ejecución del presente Contrato.
-
-Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su Reglamento aprobado mediante Decreto Supremo N° 003-2013-JUS.`;
-                sectionDiv.appendChild(createTextInput(`confidencialidad_${section.id}`, 'Confidencialidad (Editable):', textoConfidencialidad, true, 'Puede modificar el texto según sea necesario...'));
-            } else if (section.title.includes('Penalidades') && !section.title.includes('Otras')) { // Penalidad por Mora
-                sectionDiv.appendChild(createTextInput(`penalidadMora_${section.id}`, 'Penalidad por Mora (Editable):', section.content, true, 'Puede modificar el texto según sea necesario...'));
-            } else if (section.title.includes('Otras Penalidades')) {
-                sectionDiv.appendChild(createTextInput(`otrasPenalidadesDescripcion_${section.id}`, 'Descripción de Otras Penalidades:', section.content, true, '(De acuerdo al tipo de contratación el área usuaria podrá establecer otras penalidades...)'));
-            } else if (section.title.includes('Resolución del Contrato')) {
-                const checkbox = createCheckbox(`incluirResolucionContrato_${section.id}`, 'Incluir Cláusula de Resolución del Contrato', true);
-                sectionDiv.appendChild(checkbox);
-                const p = document.createElement('p');
-                p.className = 'static-clause';
-                p.textContent = section.content;
-                sectionDiv.appendChild(p);
-                p.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    p.style.display = e.target.checked ? 'block' : 'none';
-                });
-            } else if (section.title.includes('Cláusula Garantías')) {
-                const checkbox = createCheckbox(`incluirGarantias_${section.id}`, 'Incluir Cláusula de Garantías', false);
-                sectionDiv.appendChild(checkbox);
-                const textarea = createTextInput(`textoGarantias_${section.id}`, 'Texto de la Cláusula de Garantías:', section.content, true);
-                textarea.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    textarea.style.display = e.target.checked ? 'block' : 'none';
-                });
-                sectionDiv.appendChild(textarea);
-            } else if (section.title.includes('Cláusula Gestión de Riesgos')) {
-                const checkbox = createCheckbox(`incluirGestionRiesgos_${section.id}`, 'Incluir Cláusula de Gestión de Riesgos', true);
-                sectionDiv.appendChild(checkbox);
-                const p = document.createElement('p');
-                p.className = 'static-clause';
-                p.textContent = section.content;
-                sectionDiv.appendChild(p);
-                p.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    p.style.display = e.target.checked ? 'block' : 'none';
-                });
-            } else if (section.title.includes('Cláusula Anticorrupción y Antisoborno')) {
-                const checkbox = createCheckbox(`incluirAnticorrupcion_${section.id}`, 'Incluir Cláusula Anticorrupción y Antisoborno', true);
-                sectionDiv.appendChild(checkbox);
-                const p = document.createElement('p');
-                p.className = 'static-clause';
-                p.textContent = section.content;
-                sectionDiv.appendChild(p);
-                p.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    p.style.display = e.target.checked ? 'block' : 'none';
-                });
-            } else if (section.title.includes('Cláusula Solución de Controversias')) {
-                const checkbox = createCheckbox(`incluirSolucionControversias_${section.id}`, 'Incluir Cláusula de Solución de Controversias', true);
-                sectionDiv.appendChild(checkbox);
-                const p = document.createElement('p');
-                p.className = 'static-clause';
-                p.textContent = section.content;
-                sectionDiv.appendChild(p);
-                p.style.display = checkbox.querySelector('input').checked ? 'block' : 'none';
-                checkbox.querySelector('input').addEventListener('change', (e) => {
-                    p.style.display = e.target.checked ? 'block' : 'none';
+                    } else {
+                        sectionDiv.appendChild(createTextInput(`sub_${section.id}_${sub.title}`, sub.title + ':', sub.content, true));
+                    }
                 });
             } else {
-                // Fallback for any unhandled sections or simple content
-                sectionDiv.appendChild(createTextInput(`content_${section.id}`, section.title + ':', section.content, true));
+                // Fallback normal
+                sectionDiv.appendChild(createTextInput(`content_${section.id}`, 'Contenido:', section.content, true));
             }
 
-            formElement.appendChild(sectionDiv);
+            // Botón "+" para agregar contenido extra (Menú Despegable)
+            const btnAdd = document.createElement('button');
+            btnAdd.className = 'btn-add-floating';
+            btnAdd.textContent = '+';
+            btnAdd.type = 'button';
+            btnAdd.title = 'Agregar contenido';
+
+            // Contenedor del menú de opciones (oculto por defecto)
+            const optionsMenu = document.createElement('div');
+            optionsMenu.className = 'add-options-menu';
+            optionsMenu.style.display = 'none';
+            optionsMenu.style.marginTop = '5px';
+            optionsMenu.style.background = '#2d2d2d';
+            optionsMenu.style.border = '1px solid #444';
+            optionsMenu.style.borderRadius = '4px';
+            optionsMenu.style.padding = '5px';
+            optionsMenu.style.position = 'absolute';
+            optionsMenu.style.zIndex = '100';
+
+            // Opción 1: Agregar Subsección (x.y)
+            const btnAddSubsection = document.createElement('button');
+            btnAddSubsection.textContent = '📑 Agregar Sub-sección (x.y)';
+            btnAddSubsection.type = 'button'; // EVITAR SUBMIT
+            btnAddSubsection.style.display = 'block';
+            btnAddSubsection.style.width = '100%';
+            btnAddSubsection.style.textAlign = 'left';
+            btnAddSubsection.style.background = 'transparent';
+            btnAddSubsection.style.color = '#e0e0e0';
+            btnAddSubsection.style.border = 'none';
+            btnAddSubsection.style.padding = '8px';
+            btnAddSubsection.style.cursor = 'pointer';
+            btnAddSubsection.onmouseover = () => btnAddSubsection.style.background = '#444';
+            btnAddSubsection.onmouseout = () => btnAddSubsection.style.background = 'transparent';
+
+            btnAddSubsection.onclick = (e) => {
+                e.preventDefault(); // Doble seguridad
+                e.stopPropagation();
+                optionsMenu.style.display = 'none';
+
+                // Crear Wrapper de Subsección
+                const subWrapper = document.createElement('div');
+                subWrapper.className = 'dynamic-subsection-wrapper';
+                subWrapper.style.marginTop = '15px';
+                subWrapper.style.borderLeft = '3px solid #4dabf7';
+                subWrapper.style.paddingLeft = '15px';
+                subWrapper.style.background = 'rgba(77, 171, 247, 0.05)';
+                subWrapper.style.padding = '10px';
+                subWrapper.style.borderRadius = '4px';
+
+                // Input Título
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.className = 'dynamic-subsection-title';
+                titleInput.placeholder = 'Título de la Sub-sección (ej. Entregables)';
+                titleInput.style.fontWeight = 'bold';
+                titleInput.style.marginBottom = '10px';
+                titleInput.style.width = '100%';
+
+                // Textarea Contenido
+                const contentInput = document.createElement('textarea');
+                contentInput.className = 'dynamic-subsection-content';
+                contentInput.placeholder = 'Contenido de la sub-sección...';
+                contentInput.rows = 3;
+                contentInput.style.width = '100%';
+
+                // Botón Eliminar
+                const btnRemove = document.createElement('button');
+                btnRemove.textContent = 'Eliminar Sub-sección';
+                btnRemove.type = 'button'; // EVITAR SUBMIT
+                btnRemove.style.background = '#ff6b6b';
+                btnRemove.style.color = 'white';
+                btnRemove.style.border = 'none';
+                btnRemove.style.padding = '5px 10px';
+                btnRemove.style.marginTop = '5px';
+                btnRemove.style.cursor = 'pointer';
+                btnRemove.onclick = () => {
+                    subWrapper.remove();
+                    updateLivePreview();
+                };
+
+                subWrapper.appendChild(titleInput);
+                subWrapper.appendChild(contentInput);
+                subWrapper.appendChild(btnRemove);
+
+                // Insertar antes del botón +
+                contentWrapper.insertBefore(subWrapper, btnContainer); // Insertar antes del contenedor del botón
+                updateLivePreview();
+            };
+
+            // Opción 2: Agregar Cláusula (Título + Contenido)
+            const btnAddClause = document.createElement('button');
+            btnAddClause.textContent = '📝 Agregar Cláusula (Título + Texto)';
+            btnAddClause.type = 'button'; // EVITAR SUBMIT
+            btnAddClause.style.display = 'block';
+            btnAddClause.style.width = '100%';
+            btnAddClause.style.textAlign = 'left';
+            btnAddClause.style.background = 'transparent';
+            btnAddClause.style.color = '#e0e0e0';
+            btnAddClause.style.border = 'none';
+            btnAddClause.style.padding = '8px';
+            btnAddClause.style.cursor = 'pointer';
+            btnAddClause.onmouseover = () => btnAddClause.style.background = '#444';
+            btnAddClause.onmouseout = () => btnAddClause.style.background = 'transparent';
+
+            btnAddClause.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                optionsMenu.style.display = 'none';
+
+                // Crear Wrapper de Cláusula
+                const clauseWrapper = document.createElement('div');
+                clauseWrapper.className = 'dynamic-clause-wrapper';
+                clauseWrapper.style.marginTop = '15px';
+                clauseWrapper.style.borderLeft = '2px solid #666';
+                clauseWrapper.style.paddingLeft = '10px';
+                clauseWrapper.style.background = 'rgba(255, 255, 255, 0.05)';
+                clauseWrapper.style.padding = '10px';
+                clauseWrapper.style.borderRadius = '4px';
+
+                // Checkbox Numeración Automática
+                const numberingContainer = document.createElement('div');
+                numberingContainer.style.marginBottom = '5px';
+                numberingContainer.style.display = 'flex';
+                numberingContainer.style.alignItems = 'center';
+
+                const numberingCheckbox = document.createElement('input');
+                numberingCheckbox.type = 'checkbox';
+                numberingCheckbox.className = 'dynamic-clause-numbered';
+                numberingCheckbox.checked = true; // Por defecto numerado
+                numberingCheckbox.id = `num_chk_${Date.now()}`;
+
+                const numberingLabel = document.createElement('label');
+                numberingLabel.htmlFor = numberingCheckbox.id;
+                numberingLabel.textContent = 'Numerar automáticamente (x.y)';
+                numberingLabel.style.marginLeft = '5px';
+                numberingLabel.style.fontSize = '0.9em';
+                numberingLabel.style.color = '#ccc';
+                numberingLabel.style.cursor = 'pointer';
+
+                numberingContainer.appendChild(numberingCheckbox);
+                numberingContainer.appendChild(numberingLabel);
+
+                // Input Título (Opcional pero recomendado)
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.className = 'dynamic-clause-title';
+                titleInput.placeholder = 'Título de la Cláusula (ej. Penalidades)';
+                titleInput.style.fontWeight = 'bold';
+                titleInput.style.marginBottom = '5px';
+                titleInput.style.width = '100%';
+                titleInput.style.border = '1px solid #555';
+                titleInput.style.background = '#333';
+                titleInput.style.color = '#fff';
+                titleInput.style.padding = '5px';
+
+                // Textarea Contenido
+                const contentInput = document.createElement('textarea');
+                contentInput.className = 'dynamic-clause-content';
+                contentInput.rows = 3;
+                contentInput.placeholder = 'Contenido de la cláusula...';
+                contentInput.style.width = '100%';
+                contentInput.style.marginTop = '5px';
+
+                // Botón Eliminar
+                const btnRemove = document.createElement('button');
+                btnRemove.textContent = 'Eliminar';
+                btnRemove.type = 'button';
+                btnRemove.style.background = '#ff6b6b';
+                btnRemove.style.color = 'white';
+                btnRemove.style.border = 'none';
+                btnRemove.style.padding = '5px 10px';
+                btnRemove.style.marginTop = '5px';
+                btnRemove.style.cursor = 'pointer';
+                btnRemove.onclick = () => {
+                    clauseWrapper.remove();
+                    updateLivePreview();
+                };
+
+                clauseWrapper.appendChild(numberingContainer);
+                clauseWrapper.appendChild(titleInput);
+                clauseWrapper.appendChild(contentInput);
+                clauseWrapper.appendChild(btnRemove);
+
+                contentWrapper.insertBefore(clauseWrapper, btnContainer);
+                updateLivePreview();
+            };
+
+            optionsMenu.appendChild(btnAddSubsection);
+            optionsMenu.appendChild(btnAddClause);
+
+            // Toggle Menú
+            btnAdd.onclick = (e) => {
+                e.stopPropagation();
+                const isVisible = optionsMenu.style.display === 'block';
+                optionsMenu.style.display = isVisible ? 'none' : 'block';
+            };
+
+            // Cerrar menú al hacer click fuera
+            document.addEventListener('click', () => {
+                optionsMenu.style.display = 'none';
+            });
+
+            // Wrapper para botón y menú
+            const btnContainer = document.createElement('div');
+            btnContainer.style.position = 'relative';
+            btnContainer.style.marginTop = '15px';
+
+            btnContainer.appendChild(btnAdd);
+            btnContainer.appendChild(optionsMenu);
+            contentWrapper.appendChild(btnContainer);
+
+            accordionItem.appendChild(accordionContent);
+            formElement.appendChild(accordionItem);
         });
+
+        // ==========================================
+        // BOTÓN: AGREGAR NUEVA SECCIÓN PRINCIPAL
+        // ==========================================
+        const btnAddMainSection = document.createElement('button');
+        btnAddMainSection.textContent = '➕ Agregar Nueva Sección Principal';
+        btnAddMainSection.className = 'btn-primary';
+        btnAddMainSection.style.marginTop = '20px';
+        btnAddMainSection.style.marginBottom = '20px';
+        btnAddMainSection.style.width = '100%';
+        btnAddMainSection.style.background = '#28a745';
+        btnAddMainSection.style.border = 'none';
+        btnAddMainSection.style.padding = '12px';
+        btnAddMainSection.style.fontSize = '1em';
+        btnAddMainSection.style.cursor = 'pointer';
+        btnAddMainSection.style.borderRadius = '5px';
+        btnAddMainSection.type = 'button';
+
+        btnAddMainSection.onmouseover = () => btnAddMainSection.style.background = '#218838';
+        btnAddMainSection.onmouseout = () => btnAddMainSection.style.background = '#28a745';
+
+        // ==========================================
+        // LÓGICA MODAL NUEVA SECCIÓN
+        // ==========================================
+        const modalNuevaSeccion = document.getElementById('modalNuevaSeccion');
+        const btnGuardarNuevaSeccion = document.getElementById('btnGuardarNuevaSeccion');
+        const closeModalSeccion = document.getElementById('closeModalSeccion');
+        const inputNewSectionTitle = document.getElementById('newSectionTitle');
+        const inputNewSectionContent = document.getElementById('newSectionContent');
+
+        // Abrir Modal
+        btnAddMainSection.onclick = () => {
+            inputNewSectionTitle.value = '';
+            inputNewSectionContent.value = '';
+            modalNuevaSeccion.style.display = 'block';
+            inputNewSectionTitle.focus();
+        };
+
+        // Cerrar Modal
+        closeModalSeccion.onclick = () => {
+            modalNuevaSeccion.style.display = 'none';
+        };
+
+        window.onclick = (event) => {
+            if (event.target == modalNuevaSeccion) {
+                modalNuevaSeccion.style.display = 'none';
+            }
+            if (event.target == document.getElementById('modalClausula')) {
+                document.getElementById('modalClausula').style.display = 'none';
+            }
+        };
+
+        // Guardar Nueva Sección desde Modal
+        btnGuardarNuevaSeccion.onclick = () => {
+            const title = inputNewSectionTitle.value.trim();
+            const contentText = inputNewSectionContent.value.trim();
+
+            if (!title) {
+                alert('Por favor, ingrese un título para la sección.');
+                return;
+            }
+
+            // Crear Estructura de Acordeón
+            const accordionItem = document.createElement('div');
+            accordionItem.className = 'accordion-item dynamic-main-section';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'accordion-header';
+
+            const titleInput = document.createElement('input');
+            titleInput.type = 'text';
+            titleInput.className = 'dynamic-main-section-title';
+            titleInput.value = title;
+            titleInput.style.background = '#333';
+            titleInput.style.border = '1px solid #555';
+            titleInput.style.color = '#fff';
+            titleInput.style.padding = '5px';
+            titleInput.style.fontSize = '1em';
+            titleInput.style.fontWeight = 'bold';
+            titleInput.style.width = '70%';
+            titleInput.onclick = (e) => e.stopPropagation();
+
+            const btnDeleteSection = document.createElement('button');
+            btnDeleteSection.textContent = '🗑️';
+            btnDeleteSection.title = 'Eliminar Sección';
+            btnDeleteSection.type = 'button';
+            btnDeleteSection.style.background = 'transparent';
+            btnDeleteSection.style.border = 'none';
+            btnDeleteSection.style.cursor = 'pointer';
+            btnDeleteSection.style.marginLeft = '10px';
+            btnDeleteSection.onclick = (e) => {
+                e.stopPropagation();
+                if (confirm('¿Eliminar esta sección completa?')) {
+                    accordionItem.remove();
+                    updateLivePreview();
+                }
+            };
+
+            // Checkbox No Aplica (Para paridad con secciones estándar)
+            const noAplicaContainer = document.createElement('div');
+            noAplicaContainer.style.display = 'flex';
+            noAplicaContainer.style.alignItems = 'center';
+            noAplicaContainer.style.marginLeft = '15px';
+            noAplicaContainer.onclick = (e) => e.stopPropagation();
+
+            const noAplicaCheck = document.createElement('input');
+            noAplicaCheck.type = 'checkbox';
+            noAplicaCheck.id = `noAplica_dynamic_${Date.now()}`;
+            noAplicaCheck.style.marginRight = '5px';
+            noAplicaCheck.onchange = () => updateLivePreview();
+
+            const noAplicaLabel = document.createElement('label');
+            noAplicaLabel.htmlFor = noAplicaCheck.id;
+            noAplicaLabel.textContent = 'No Aplica';
+            noAplicaLabel.style.fontSize = '0.9em';
+            noAplicaLabel.style.color = '#ccc';
+            noAplicaLabel.style.cursor = 'pointer';
+
+            noAplicaContainer.appendChild(noAplicaCheck);
+            noAplicaContainer.appendChild(noAplicaLabel);
+
+            const icon = document.createElement('span');
+            icon.className = 'accordion-icon';
+            icon.textContent = '▼';
+
+            const headerContent = document.createElement('div');
+            headerContent.style.display = 'flex';
+            headerContent.style.alignItems = 'center';
+            headerContent.style.flex = '1';
+            headerContent.appendChild(titleInput);
+            headerContent.appendChild(noAplicaContainer);
+            headerContent.appendChild(btnDeleteSection);
+
+            header.appendChild(headerContent);
+            header.appendChild(icon);
+
+            // Content
+            const content = document.createElement('div');
+            content.className = 'accordion-content';
+            // FORZAR APERTURA INICIAL
+            content.style.maxHeight = 'none';
+            content.style.opacity = '1';
+            content.classList.add('open');
+            icon.style.transform = 'rotate(180deg)';
+
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'section-content-wrapper';
+            contentWrapper.style.padding = '15px 0';
+
+            // Textarea Principal (Pre-llenado)
+            const mainContentInput = document.createElement('textarea');
+            mainContentInput.className = 'dynamic-main-section-content';
+            mainContentInput.rows = 4;
+            mainContentInput.value = contentText;
+            mainContentInput.placeholder = 'Contenido principal...';
+            mainContentInput.style.width = '100%';
+            mainContentInput.style.marginBottom = '15px';
+            mainContentInput.style.padding = '10px';
+            mainContentInput.style.background = '#252525';
+            mainContentInput.style.color = '#e0e0e0';
+            mainContentInput.style.border = '1px solid #444';
+            mainContentInput.style.borderRadius = '4px';
+
+            contentWrapper.appendChild(mainContentInput);
+
+            // --- Lógica Botón "+" Interno ---
+            const btnAdd = document.createElement('button');
+            btnAdd.className = 'btn-add-floating';
+            btnAdd.textContent = '+';
+            btnAdd.type = 'button';
+
+            const optionsMenu = document.createElement('div');
+            optionsMenu.className = 'add-options-menu';
+            optionsMenu.style.display = 'none';
+            optionsMenu.style.marginTop = '5px';
+            optionsMenu.style.background = '#2d2d2d';
+            optionsMenu.style.border = '1px solid #444';
+            optionsMenu.style.borderRadius = '4px';
+            optionsMenu.style.padding = '5px';
+            optionsMenu.style.position = 'absolute';
+            optionsMenu.style.zIndex = '100';
+
+            // Opción Subsección
+            const btnAddSubsection = document.createElement('button');
+            btnAddSubsection.textContent = '📑 Agregar Sub-sección (x.y)';
+            btnAddSubsection.type = 'button';
+            btnAddSubsection.style.display = 'block';
+            btnAddSubsection.style.width = '100%';
+            btnAddSubsection.style.textAlign = 'left';
+            btnAddSubsection.style.background = 'transparent';
+            btnAddSubsection.style.color = '#e0e0e0';
+            btnAddSubsection.style.border = 'none';
+            btnAddSubsection.style.padding = '8px';
+            btnAddSubsection.style.cursor = 'pointer';
+            btnAddSubsection.onmouseover = () => btnAddSubsection.style.background = '#444';
+            btnAddSubsection.onmouseout = () => btnAddSubsection.style.background = 'transparent';
+
+            btnAddSubsection.onclick = (e) => {
+                e.preventDefault(); e.stopPropagation(); optionsMenu.style.display = 'none';
+                const subWrapper = document.createElement('div');
+                subWrapper.className = 'dynamic-subsection-wrapper';
+                subWrapper.style.marginTop = '15px';
+                subWrapper.style.borderLeft = '2px solid #4dabf7';
+                subWrapper.style.paddingLeft = '10px';
+
+                const subTitleInput = document.createElement('input');
+                subTitleInput.type = 'text';
+                subTitleInput.className = 'dynamic-subsection-title';
+                subTitleInput.placeholder = 'Título Subsección';
+                subTitleInput.style.width = '100%';
+                subTitleInput.style.marginBottom = '5px';
+                subTitleInput.style.background = '#333'; subTitleInput.style.color = '#fff'; subTitleInput.style.border = '1px solid #555';
+
+                const subContentInput = document.createElement('textarea');
+                subContentInput.className = 'dynamic-subsection-content';
+                subContentInput.rows = 3;
+                subContentInput.placeholder = 'Contenido...';
+                subContentInput.style.width = '100%';
+
+                const btnRemoveSub = document.createElement('button');
+                btnRemoveSub.textContent = 'Eliminar';
+                btnRemoveSub.type = 'button';
+                btnRemoveSub.style.background = '#ff6b6b'; btnRemoveSub.style.color = 'white'; btnRemoveSub.style.border = 'none'; btnRemoveSub.style.marginTop = '5px';
+                btnRemoveSub.onclick = () => { subWrapper.remove(); updateLivePreview(); };
+
+                subWrapper.appendChild(subTitleInput); subWrapper.appendChild(subContentInput); subWrapper.appendChild(btnRemoveSub);
+                contentWrapper.insertBefore(subWrapper, btnContainer);
+                updateLivePreview();
+            };
+
+            // Opción Cláusula
+            const btnAddClause = document.createElement('button');
+            btnAddClause.textContent = '📝 Agregar Cláusula (Título + Texto)';
+            btnAddClause.type = 'button';
+            btnAddClause.style.display = 'block';
+            btnAddClause.style.width = '100%';
+            btnAddClause.style.textAlign = 'left';
+            btnAddClause.style.background = 'transparent';
+            btnAddClause.style.color = '#e0e0e0';
+            btnAddClause.style.border = 'none';
+            btnAddClause.style.padding = '8px';
+            btnAddClause.style.cursor = 'pointer';
+            btnAddClause.onmouseover = () => btnAddClause.style.background = '#444';
+            btnAddClause.onmouseout = () => btnAddClause.style.background = 'transparent';
+
+            btnAddClause.onclick = (e) => {
+                e.preventDefault(); e.stopPropagation(); optionsMenu.style.display = 'none';
+                const clauseWrapper = document.createElement('div');
+                clauseWrapper.className = 'dynamic-clause-wrapper';
+                clauseWrapper.style.marginTop = '15px';
+                clauseWrapper.style.borderLeft = '2px solid #666';
+                clauseWrapper.style.paddingLeft = '10px';
+                clauseWrapper.style.background = 'rgba(255, 255, 255, 0.05)';
+                clauseWrapper.style.padding = '10px';
+
+                const numContainer = document.createElement('div');
+                numContainer.style.marginBottom = '5px'; numContainer.style.display = 'flex'; numContainer.style.alignItems = 'center';
+                const numCheck = document.createElement('input');
+                numCheck.type = 'checkbox'; numCheck.className = 'dynamic-clause-numbered'; numCheck.checked = true; numCheck.id = `chk_${Date.now()}`;
+                const numLabel = document.createElement('label');
+                numLabel.htmlFor = numCheck.id; numLabel.textContent = 'Numerar (x.y)'; numLabel.style.marginLeft = '5px'; numLabel.style.color = '#ccc';
+                numContainer.appendChild(numCheck); numContainer.appendChild(numLabel);
+
+                const clTitleInput = document.createElement('input');
+                clTitleInput.type = 'text'; clTitleInput.className = 'dynamic-clause-title'; clTitleInput.placeholder = 'Título Cláusula'; clTitleInput.style.width = '100%'; clTitleInput.style.marginBottom = '5px'; clTitleInput.style.background = '#333'; clTitleInput.style.color = '#fff'; clTitleInput.style.border = '1px solid #555';
+
+                const clContentInput = document.createElement('textarea');
+                clContentInput.className = 'dynamic-clause-content'; clContentInput.rows = 3; clContentInput.placeholder = 'Contenido...'; clContentInput.style.width = '100%';
+
+                const btnRemoveCl = document.createElement('button');
+                btnRemoveCl.textContent = 'Eliminar';
+                btnRemoveCl.type = 'button'; btnRemoveCl.style.background = '#ff6b6b'; btnRemoveCl.style.color = 'white'; btnRemoveCl.style.border = 'none'; btnRemoveCl.style.marginTop = '5px';
+                btnRemoveCl.onclick = () => { clauseWrapper.remove(); updateLivePreview(); };
+
+                clauseWrapper.appendChild(numContainer); clauseWrapper.appendChild(clTitleInput); clauseWrapper.appendChild(clContentInput); clauseWrapper.appendChild(btnRemoveCl);
+                contentWrapper.insertBefore(clauseWrapper, btnContainer);
+                updateLivePreview();
+            };
+
+            optionsMenu.appendChild(btnAddSubsection);
+            optionsMenu.appendChild(btnAddClause);
+
+            btnAdd.onclick = (e) => { e.stopPropagation(); optionsMenu.style.display = optionsMenu.style.display === 'block' ? 'none' : 'block'; };
+            document.addEventListener('click', () => optionsMenu.style.display = 'none');
+
+            const btnContainer = document.createElement('div');
+            btnContainer.style.position = 'relative';
+            btnContainer.style.marginTop = '15px';
+            btnContainer.appendChild(btnAdd);
+            btnContainer.appendChild(optionsMenu);
+            contentWrapper.appendChild(btnContainer);
+            // --- Fin Lógica Botón "+" ---
+
+            content.appendChild(contentWrapper);
+            accordionItem.appendChild(header);
+            accordionItem.appendChild(content);
+
+            // Lógica Acordeón
+            header.addEventListener('click', () => {
+                const isOpen = content.classList.contains('open');
+                if (isOpen) {
+                    content.classList.remove('open');
+                    content.style.maxHeight = '0';
+                    content.style.opacity = '0';
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    content.classList.add('open');
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    content.style.opacity = '1';
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            });
+
+            // Insertar antes del botón de agregar sección
+            formElement.insertBefore(accordionItem, btnAddMainSection);
+
+            modalNuevaSeccion.style.display = 'none';
+            updateLivePreview();
+        };
+
+        formElement.appendChild(btnAddMainSection);
+
+        // Inicializar vista previa una vez renderizado todo
+        setTimeout(updateLivePreview, 500);
 
         // Contenedor de botones
         const buttonContainer = document.createElement('div');
@@ -746,28 +1355,265 @@ Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su
             }
         }
 
-        // Funcion para recolectar datos del formulario
-        function collectFormData() {
-            const formData = {};
-            const formElements = formElement.elements;
+        // Funcion para recolectar datos del formulario ESTRUCTURADOS para la vista previa
+        // ==========================================
+        // LÓGICA DE VISTA PREVIA EN VIVO (DOM-FIRST STRATEGY MEJORADA)
+        // ==========================================
+        // ==========================================
+        // LÓGICA DE VISTA PREVIA EN VIVO (DOM-FIRST STRATEGY MEJORADA)
+        // ==========================================
+        function updateLivePreview() {
+            try {
+                const previewContainer = document.getElementById('doc-body');
+                if (!previewContainer) return;
 
-            for (const element of formElements) {
-                if (element.name) {
-                    if (element.type === 'radio') {
-                        if (element.checked) {
-                            formData[element.name] = element.value;
+                let htmlContent = '';
+
+                // 1. Datos Generales
+                const datosGeneralesSection = document.getElementById('accordion-general_data') || document.getElementById('accordion-datos_generales');
+                if (datosGeneralesSection) {
+                    const getVal = (name) => datosGeneralesSection.querySelector(`[name="${name}"]`)?.value || 'No especificado';
+                    const getSelectText = (name) => {
+                        const sel = datosGeneralesSection.querySelector(`[name="${name}"]`);
+                        return sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : 'No especificado';
+                    };
+
+                    const actividadSelect = datosGeneralesSection.querySelector('[name="actividadPOI"]');
+                    const actividad = actividadSelect ? Array.from(actividadSelect.selectedOptions).map(o => o.text).join(', ') : 'No especificado';
+
+                    htmlContent += `
+                        <table class="doc-table">
+                            <tr><td>Item:</td><td>${getVal('item')}</td></tr>
+                            <tr><td>Meta Presupuestaria:</td><td>${getSelectText('metaPresupuestaria')}</td></tr>
+                            <tr><td>Unidad de Organización:</td><td>${getVal('unidadOrganizacion')}</td></tr>
+                            <tr><td>Actividad del POI:</td><td>${actividad}</td></tr>
+                            <tr><td>Denominación de la Contratación:</td><td>${getVal('denominacionContratacion')}</td></tr>
+                        </table>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                    `;
+                }
+
+                // 2. Iterar sobre items del acordeón
+                const accordionItems = document.querySelectorAll('.accordion-item');
+                let sectionCounter = 1;
+
+                accordionItems.forEach(item => {
+                    if (item.id === 'accordion-general_data' || item.id === 'accordion-datos_generales') return;
+
+                    const noAplica = item.querySelector('input[type="checkbox"][id^="noAplica"]');
+                    if (noAplica && noAplica.checked) return;
+
+                    // Título Principal
+                    const headerH3 = item.querySelector('.accordion-header h3');
+                    const headerInput = item.querySelector('.dynamic-main-section-title');
+
+                    let rawTitle = 'Sección';
+                    if (headerH3) {
+                        rawTitle = headerH3.textContent.trim();
+                    } else if (headerInput) {
+                        rawTitle = headerInput.value.trim() || 'Nueva Sección';
+                    }
+
+                    const cleanTitle = rawTitle.replace(/^\d+(\.\d+)*\s*/, '');
+
+                    htmlContent += `<div class="doc-section">`;
+                    htmlContent += `<div class="doc-section-title">${sectionCounter}. ${cleanTitle}</div>`;
+
+                    const contentWrapper = item.querySelector('.section-content-wrapper') || item.querySelector('.accordion-content');
+
+                    let hasMainContent = false;
+                    if (contentWrapper) {
+                        // 1. Contenido Principal de la Sección (Intro)
+                        const mainContentInput = contentWrapper.querySelector('.dynamic-main-section-content');
+                        if (mainContentInput && mainContentInput.value.trim()) {
+                            htmlContent += `<div class="doc-section-content"><p>${mainContentInput.value.trim()}</p></div>`;
+                            hasMainContent = true;
                         }
-                    } else if (element.type === 'checkbox') {
-                        formData[element.name] = element.checked;
-                    } else if (element.tagName === 'SELECT' && element.multiple) {
-                        formData[element.name] = Array.from(element.selectedOptions).map(option => option.value);
-                    } else {
-                        formData[element.name] = element.value;
+                        // Detectar si hay subsecciones (H4 estáticos o Inputs dinámicos de título)
+                        const staticSubTitles = contentWrapper.querySelectorAll('h4');
+                        const dynamicSubTitles = contentWrapper.querySelectorAll('.dynamic-subsection-title');
+                        const hasSubsections = staticSubTitles.length > 0 || dynamicSubTitles.length > 0;
+
+                        if (hasSubsections) {
+                            // Lógica para Subsecciones
+                            let subCounter = 1;
+                            let currentSubContent = '';
+
+                            // Función para volcar contenido acumulado
+                            const flushContent = () => {
+                                if (currentSubContent) {
+                                    htmlContent += `<div class="doc-section-content">${currentSubContent}</div>`;
+                                    currentSubContent = '';
+                                }
+                            };
+
+                            // Iterar hijos para agrupar contenido
+                            Array.from(contentWrapper.children).forEach(child => {
+                                if (child.classList.contains('dynamic-main-section-content')) return;
+
+                                // Identificar tipos de bloques
+                                const isStaticTitle = child.tagName === 'H4';
+                                const isDynamicSubWrapper = child.classList.contains('dynamic-subsection-wrapper');
+                                const isDynamicClauseWrapper = child.classList.contains('dynamic-clause-wrapper');
+
+                                if (isStaticTitle) {
+                                    flushContent();
+                                    const subCleanTitle = child.textContent.trim().replace(/^\d+(\.\d+)*\s*/, '');
+                                    htmlContent += `<div class="doc-subsection-title" style="margin-top:10px; margin-left:15px;">${sectionCounter}.${subCounter}. ${subCleanTitle}</div>`;
+                                    subCounter++;
+                                } else if (isDynamicSubWrapper) {
+                                    flushContent();
+                                    const inputTitle = child.querySelector('.dynamic-subsection-title');
+                                    const val = inputTitle ? inputTitle.value.trim() : 'Subsección';
+                                    if (val) {
+                                        htmlContent += `<div class="doc-subsection-title" style="margin-top:10px; margin-left:15px;">${sectionCounter}.${subCounter}. ${val}</div>`;
+                                        subCounter++;
+                                    }
+                                    const contentInput = child.querySelector('.dynamic-subsection-content');
+                                    if (contentInput && contentInput.value.trim()) {
+                                        htmlContent += `<div class="doc-section-content" style="margin-left:15px;"><p>${contentInput.value.trim()}</p></div>`;
+                                    }
+                                } else if (isDynamicClauseWrapper) {
+                                    // Cláusula Personalizada (Puede ser numerada o simple)
+                                    const inputTitle = child.querySelector('.dynamic-clause-title');
+                                    const inputContent = child.querySelector('.dynamic-clause-content');
+                                    const isNumbered = child.querySelector('.dynamic-clause-numbered')?.checked;
+
+                                    if (isNumbered) {
+                                        // Renderizar como Subsección Numerada (x.y)
+                                        flushContent(); // Cerrar contenido anterior
+
+                                        const val = inputTitle ? inputTitle.value.trim() : 'Cláusula';
+                                        if (val) {
+                                            htmlContent += `<div class="doc-subsection-title" style="margin-top:10px; margin-left:15px;">${sectionCounter}.${subCounter}. ${val}</div>`;
+                                            subCounter++;
+                                        }
+
+                                        if (inputContent && inputContent.value.trim()) {
+                                            htmlContent += `<div class="doc-section-content" style="margin-left:15px;"><p>${inputContent.value.trim()}</p></div>`;
+                                        }
+                                    } else {
+                                        // Renderizar como Bloque de Texto con Título (Sin numeración x.y)
+                                        let clauseHtml = '';
+                                        if (inputTitle && inputTitle.value.trim()) {
+                                            clauseHtml += `<strong>${inputTitle.value.trim()}</strong><br>`;
+                                        }
+                                        if (inputContent && inputContent.value.trim()) {
+                                            clauseHtml += `${inputContent.value.trim()}`;
+                                        }
+
+                                        if (clauseHtml) {
+                                            // Indentar si estamos dentro de una subsección
+                                            const style = subCounter > 1 ? 'margin-left:15px;' : '';
+                                            // Agregamos al contenido acumulado
+                                            if (currentSubContent) currentSubContent += '<br><br>';
+                                            currentSubContent += `<p style="${style}">${clauseHtml}</p>`;
+                                        }
+                                    }
+
+                                } else {
+                                    // Contenido normal (párrafos sueltos, inputs adicionales fuera de wrappers)
+                                    // OJO: Si es un botón o el menú de agregar, ignorar
+                                    if (child.tagName === 'BUTTON' || child.classList.contains('add-options-menu')) return;
+
+                                    const extractedText = extractContentFromNode(child);
+                                    if (extractedText) {
+                                        // Acumular en currentSubContent para mantener orden relativo a subsecciones
+                                        if (currentSubContent) currentSubContent += '<br>';
+                                        currentSubContent += extractedText;
+                                    }
+                                }
+                            });
+                            flushContent();
+                        } else {
+                            // Lógica Plana (Sin subsecciones)
+                            // Aquí también debemos soportar las cláusulas dinámicas si se agregan
+                            let flatContent = '';
+                            Array.from(contentWrapper.children).forEach(child => {
+                                if (child.classList.contains('dynamic-main-section-content')) return;
+
+                                if (child.classList.contains('dynamic-clause-wrapper')) {
+                                    const inputTitle = child.querySelector('.dynamic-clause-title');
+                                    const inputContent = child.querySelector('.dynamic-clause-content');
+                                    if (inputTitle && inputTitle.value.trim()) flatContent += `<p><strong>${inputTitle.value.trim()}</strong></p>`;
+                                    if (inputContent && inputContent.value.trim()) flatContent += `<p>${inputContent.value.trim()}</p>`;
+                                } else {
+                                    if (child.tagName === 'BUTTON' || child.classList.contains('add-options-menu')) return;
+                                    flatContent += extractContentFromNode(child);
+                                }
+                            });
+
+                            if (flatContent) {
+                                htmlContent += `<div class="doc-section-content">${flatContent}</div>`;
+                            } else if (!hasMainContent) {
+                                htmlContent += `<div class="doc-section-content"><p style="color:#ccc; font-style:italic;">(Sin contenido)</p></div>`;
+                            }
+                        }
+                    }
+
+                    htmlContent += `</div>`; // Cerrar doc-section
+                    sectionCounter++;
+                });
+
+                previewContainer.innerHTML = htmlContent;
+
+            } catch (e) {
+                console.error("Error en Live Preview:", e);
+            }
+        }
+
+        // Helper para extraer texto de nodos (divs, inputs, etc)
+        function extractContentFromNode(node) {
+            let textParts = [];
+
+            // Si es un nodo de texto directo (raro en este layout)
+            if (node.nodeType === 3 && node.textContent.trim()) return `<p>${node.textContent.trim()}</p>`;
+
+            // Buscar inputs/textareas dentro del nodo
+            const inputs = node.querySelectorAll ? node.querySelectorAll('input[type="text"], textarea') : [];
+            inputs.forEach(input => {
+                if (input.type === 'text' || input.tagName === 'TEXTAREA') {
+                    // Ignorar inputs ocultos de "otros" si no están activos
+                    if (input.parentElement.style.display === 'none') return;
+                    if (input.value.trim()) textParts.push(`<p>${input.value.trim()}</p>`);
+                }
+            });
+
+            // Buscar Radios seleccionados
+            const radios = node.querySelectorAll ? node.querySelectorAll('input[type="radio"]:checked') : [];
+            radios.forEach(radio => {
+                if (radio.name === 'contractType') return;
+                const label = radio.nextElementSibling;
+                if (label) {
+                    let txt = label.textContent.trim();
+                    // Si es "Otros", no agregamos el texto del radio, esperamos que el input de texto lo cubra
+                    if (!txt.toLowerCase().includes('otros') && !txt.toLowerCase().includes('especifique')) {
+                        textParts.push(`<p>${txt}</p>`);
                     }
                 }
+            });
+
+            // Si el propio nodo es un input/textarea (caso borde)
+            if (node.tagName === 'TEXTAREA' || (node.tagName === 'INPUT' && node.type === 'text')) {
+                if (node.value.trim()) textParts.push(`<p>${node.value.trim()}</p>`);
             }
-            return formData;
+
+            return textParts.join('');
         }
+
+        // Event Listeners Globales para Live Preview
+        // Usamos 'input' y 'change' en todo el documento para capturar cualquier cambio
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('input, textarea, select')) updateLivePreview();
+        });
+        document.addEventListener('change', (e) => {
+            if (e.target.matches('input, textarea, select')) updateLivePreview();
+        });
+
+        // Inicializar Preview periódicamente para asegurar sincronización
+        setInterval(updateLivePreview, 2000); // Polling cada 2s como respaldo
+        setTimeout(updateLivePreview, 1000); // Primera carga
+        // (Función collectFormData eliminada en favor de DOM-First Strategy)
 
         // Event listener Vista Previa
         btnVistaPrevia.addEventListener('click', (event) => {
@@ -846,7 +1692,7 @@ Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su
 
         // Event listeners para botones "+"
         document.querySelectorAll('.btn-add-clause').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 insertBeforeId = this.getAttribute('data-insert-before');
                 modal.style.display = 'flex';
                 clausulaTituloInput.value = '';
@@ -865,10 +1711,46 @@ Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su
             }
         });
 
-        // Guardar cláusula personalizada
+        // ==========================================
+        // TOGGLE VISTA PREVIA (DESPEGABLE)
+        // ==========================================
+        const btnTogglePreview = document.getElementById('btnTogglePreview');
+        const previewPane = document.getElementById('preview-pane');
+        let isPreviewOpen = true; // Empezar abierto por defecto
+
+        function togglePreview() {
+            isPreviewOpen = !isPreviewOpen;
+            if (isPreviewOpen) {
+                previewPane.classList.add('open');
+                btnTogglePreview.innerHTML = '👁️ Ocultar Vista Previa';
+                btnTogglePreview.style.backgroundColor = '#4dabf7';
+                btnTogglePreview.style.color = 'white';
+            } else {
+                previewPane.classList.remove('open');
+                btnTogglePreview.innerHTML = '👁️ Ver Hoja / Vista Previa';
+                btnTogglePreview.style.backgroundColor = '#2d2d2d';
+                btnTogglePreview.style.color = '#4dabf7';
+            }
+        }
+
+        if (btnTogglePreview && previewPane) {
+            btnTogglePreview.addEventListener('click', (e) => {
+                e.preventDefault();
+                togglePreview();
+            });
+
+            // Estado inicial: Abierto
+            previewPane.classList.add('open');
+            btnTogglePreview.innerHTML = '👁️ Ocultar Vista Previa';
+            btnTogglePreview.style.backgroundColor = '#4dabf7';
+            btnTogglePreview.style.color = 'white';
+        }
+
+        // Guardar cláusula personalizada (Lógica corregida y restaurada)
         btnGuardarClausula.addEventListener('click', () => {
             const titulo = clausulaTituloInput.value.trim();
             const contenido = clausulaContenidoInput.value.trim();
+            const insertBeforeId = clausulaPosicionSelect.value;
 
             if (!titulo || !contenido) {
                 alert('Por favor complete el título y contenido de la cláusula');
@@ -878,42 +1760,61 @@ Normativa aplicable: Ley N° 29733, Ley de Protección de Datos Personales, y su
             // Generar ID único para la cláusula
             const clausulaId = `custom_${Date.now()}`;
 
-            // Guardar en array
-            clausulasPersonalizadas.push({
-                id: clausulaId,
-                titulo: titulo,
-                contenido: contenido,
-                insertBeforeId: insertBeforeId
-            });
+            // Crear item de acordeón para la cláusula custom
+            const accordionItem = document.createElement('div');
+            accordionItem.className = 'accordion-item active';
+            accordionItem.id = `accordion-${clausulaId}`;
 
-            // Crear sección custom
-            const customSection = document.createElement('div');
-            customSection.className = 'form-section';
-            customSection.id = `section-${clausulaId}`;
-            customSection.setAttribute('data-custom', 'true');
+            // Header
+            const accordionHeader = document.createElement('div');
+            accordionHeader.className = 'accordion-header';
+            accordionHeader.innerHTML = `<h3>${titulo} (Personalizado)</h3>`;
+            accordionHeader.onclick = () => {
+                accordionItem.classList.toggle('active');
+            };
 
-            const header = document.createElement('h3');
-            header.textContent = titulo;
-            customSection.appendChild(header);
+            // Content
+            const accordionContent = document.createElement('div');
+            accordionContent.className = 'accordion-content';
 
             const textarea = document.createElement('textarea');
-            textarea.id = clausulaId;
-            textarea.name = clausulaId;
+            textarea.id = `content_${clausulaId}`;
             textarea.value = contenido;
-            textarea.rows = 6;
-            textarea.className = 'form-control';
-            customSection.appendChild(textarea);
+            textarea.rows = 4;
 
-            // Insertar antes de la sección especificada
-            const targetSection = document.getElementById(`section-${insertBeforeId}`);
-            const btnBeforeTarget = formElement.querySelector(`[data-insert-before="${insertBeforeId}"]`);
+            // Botón eliminar
+            const btnDelete = document.createElement('button');
+            btnDelete.textContent = 'Eliminar Sección';
+            btnDelete.style.background = '#ff6b6b';
+            btnDelete.style.color = 'white';
+            btnDelete.style.border = 'none';
+            btnDelete.style.marginTop = '10px';
+            btnDelete.style.padding = '5px 10px';
+            btnDelete.style.cursor = 'pointer';
+            btnDelete.onclick = () => {
+                accordionItem.remove();
+                updateLivePreview();
+            };
 
-            if (btnBeforeTarget && targetSection) {
-                formElement.insertBefore(customSection, btnBeforeTarget);
+            accordionContent.appendChild(textarea);
+            accordionContent.appendChild(btnDelete);
+            accordionItem.appendChild(accordionHeader);
+            accordionItem.appendChild(accordionContent);
+
+            // Insertar en el DOM
+            const targetAccordion = document.getElementById(`accordion-${insertBeforeId}`);
+            if (targetAccordion) {
+                formElement.insertBefore(accordionItem, targetAccordion);
+            } else {
+                formElement.appendChild(accordionItem);
             }
 
-            // Cerrar modal
+            // Cerrar modal y limpiar
             modal.style.display = 'none';
+            clausulaTituloInput.value = '';
+            clausulaContenidoInput.value = '';
+
+            updateLivePreview();
         });
 
         console.log('Formulario interactivo generado con todos los controles.');
