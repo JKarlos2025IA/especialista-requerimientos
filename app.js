@@ -457,9 +457,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Título (Numerales en Azul) - QUITANDO NUMERACIÓN AUTOMÁTICA DEL MARKDOWN
             const title = document.createElement('h3');
             // Regex para quitar "1. ", "2.1 ", etc. al inicio
-            title.textContent = section.title.replace(/^\d+(\.\d+)*\s*/, '');
+            title.textContent = section.title.replace(/^\d+(\.\d+)*\.?\s*/, '');
+
+            // Span para la numeración dinámica en el formulario
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'section-number';
+            numberSpan.style.color = '#4dabf7';
+            numberSpan.style.marginRight = '10px';
+            numberSpan.style.fontWeight = 'bold';
 
             accordionHeader.appendChild(btnHeaderAdd); // Insertar botón + antes del título
+            accordionHeader.appendChild(numberSpan);   // Insertar número
             accordionHeader.appendChild(title);
 
             // Icono de flecha
@@ -493,19 +501,19 @@ document.addEventListener('DOMContentLoaded', () => {
             noAplicaCheckbox.type = 'checkbox';
             noAplicaCheckbox.id = `noAplica_${section.id}`;
             noAplicaCheckbox.addEventListener('change', (e) => {
+                // Solo actualizamos la vista previa.
+                // Ya no deshabilitamos los inputs para permitir que el usuario edite si decide volver a incluirla
+                // o si quiere dejar "NO APLICA" escrito explícitamente (en cuyo caso no debería marcar este check).
                 if (e.target.checked) {
-                    contentWrapper.classList.add('section-disabled');
-                    // Deshabilitar inputs internos
-                    contentWrapper.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+                    accordionItem.style.opacity = '0.5'; // Visual feedback only
                 } else {
-                    contentWrapper.classList.remove('section-disabled');
-                    // Habilitar inputs internos
-                    contentWrapper.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
+                    accordionItem.style.opacity = '1';
                 }
+                updateLivePreview();
             });
             const noAplicaLabel = document.createElement('label');
             noAplicaLabel.htmlFor = `noAplica_${section.id}`;
-            noAplicaLabel.textContent = 'No Aplica / Eliminar esta sección';
+            noAplicaLabel.textContent = 'Excluir del documento final';
             noAplicaContainer.appendChild(noAplicaCheckbox);
             noAplicaContainer.appendChild(noAplicaLabel);
             accordionContent.appendChild(noAplicaContainer);
@@ -582,33 +590,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const sectionDiv = contentWrapper; // Usamos contentWrapper como el contenedor de controles
 
             // Dynamically add controls based on section content and title
-            if (section.id === 'general_data' || section.id === 'datos_generales') {
+            // Dynamically add controls based on section content and title
+            // FIX: Asegurar que la primera sección (Datos Generales) siempre esté abierta
+            if (index === 0 || section.id === 'general_data' || section.id === 'datos_generales') {
                 // ... (Lógica existente para Datos Generales) ...
-                sectionDiv.appendChild(createDatalistInput('item', 'Item (Servicio CUBSO):', allServiciosData, 'Buscar por código o descripción...', true));
-                sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta', false, true));
-                const metaSelect = sectionDiv.querySelector('#metaPresupuestaria');
-                sectionDiv.appendChild(createTextInput('unidadOrganizacion', 'Unidad de Organización:', '', false, '', true));
-                const unidadInput = sectionDiv.querySelector('#unidadOrganizacion');
-                sectionDiv.appendChild(createSelectInput('actividadPOI', 'Actividad del POI:', [], '', 'Seleccione actividades', true, true));
-                const actividadSelect = sectionDiv.querySelector('#actividadPOI');
-                actividadSelect.setAttribute('multiple', 'true');
-                actividadSelect.setAttribute('size', '5');
-                sectionDiv.appendChild(createTextInput('denominacionContratacion', 'Denominación de la Contratación:', '', false, 'Ingrese la denominación del servicio', false, true));
+                if (section.id === 'general_data' || section.id === 'datos_generales') {
+                    // Solo agregar los inputs específicos si es realmente Datos Generales
+                    sectionDiv.appendChild(createDatalistInput('item', 'Item (Servicio CUBSO):', allServiciosData, 'Buscar por código o descripción...', true));
+                    sectionDiv.appendChild(createSelectInput('metaPresupuestaria', 'Meta Presupuestaria:', allMetasData.map(meta => ({ value: meta.id, text: meta.nombre })), '', 'Seleccione una Meta', false, true));
+                    const metaSelect = sectionDiv.querySelector('#metaPresupuestaria');
+                    sectionDiv.appendChild(createTextInput('unidadOrganizacion', 'Unidad de Organización:', '', false, '', true));
+                    const unidadInput = sectionDiv.querySelector('#unidadOrganizacion');
+                    sectionDiv.appendChild(createSelectInput('actividadPOI', 'Actividad del POI:', [], '', 'Seleccione actividades', true, true));
+                    const actividadSelect = sectionDiv.querySelector('#actividadPOI');
+                    actividadSelect.setAttribute('multiple', 'true');
+                    actividadSelect.setAttribute('size', '5');
+                    sectionDiv.appendChild(createTextInput('denominacionContratacion', 'Denominación de la Contratación:', '', false, 'Ingrese la denominación del servicio', false, true));
 
-                metaSelect.addEventListener('change', (event) => {
-                    const selectedMetaId = event.target.value;
-                    const selectedMeta = allMetasData.find(meta => meta.id === selectedMetaId);
-                    unidadInput.value = selectedMeta ? selectedMeta.unidad : '';
-                    actividadSelect.innerHTML = '';
-                    if (selectedMeta && selectedMeta.actividades) {
-                        selectedMeta.actividades.forEach(act => {
-                            const option = document.createElement('option');
-                            option.value = act.id;
-                            option.textContent = act.nombre;
-                            actividadSelect.appendChild(option);
-                        });
-                    }
-                });
+                    metaSelect.addEventListener('change', (event) => {
+                        const selectedMetaId = event.target.value;
+                        const selectedMeta = allMetasData.find(meta => meta.id === selectedMetaId);
+                        unidadInput.value = selectedMeta ? selectedMeta.unidad : '';
+                        actividadSelect.innerHTML = '';
+                        if (selectedMeta && selectedMeta.actividades) {
+                            selectedMeta.actividades.forEach(act => {
+                                const option = document.createElement('option');
+                                option.value = act.id;
+                                option.textContent = act.nombre;
+                                actividadSelect.appendChild(option);
+                            });
+                        }
+                    });
+                }
 
                 // Datos generales siempre visible y sin "No Aplica"
                 accordionItem.classList.add('active');
@@ -639,6 +652,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } else if (section.subsecciones && section.subsecciones.length > 0) {
+                // FIX: Si es una sección dinámica (o tiene contenido explícito), debemos renderizar su input de contenido principal
+                // ANTES de renderizar las subsecciones. De lo contrario, al agregar una subsección, el contenido principal desaparece.
+                if (section.isDynamic || (section.content && section.content.trim() !== '')) {
+                    const contentInput = document.createElement('textarea');
+                    // Usamos la clase que syncFormStateToData busca primero
+                    contentInput.className = 'dynamic-main-section-content';
+                    contentInput.value = section.content || '';
+                    contentInput.rows = 3;
+                    contentInput.placeholder = 'Contenido de la sección...';
+                    contentInput.style.width = '100%';
+                    contentInput.style.marginBottom = '15px';
+
+                    // Si es estática, tal vez queramos usar el ID estándar para consistencia, 
+                    // pero dynamic-main-section-content es más seguro para nuestra lógica de sync nueva.
+                    if (!section.isDynamic) {
+                        contentInput.id = `content_${section.id}`;
+                    }
+
+                    sectionDiv.appendChild(contentInput);
+                }
+
                 // SECCIÓN CON SUBSECCIONES
                 section.subsecciones.forEach(sub => {
                     const subTitle = document.createElement('h4');
@@ -684,436 +718,247 @@ document.addEventListener('DOMContentLoaded', () => {
                         sectionDiv.appendChild(createTextInput(`sub_${section.id}_${sub.title}`, sub.title + ':', sub.content, true));
                     }
                 });
+
+                // --- RENDERIZAR SUBSECCIONES DINÁMICAS AGREGADAS A ESTA SECCIÓN ESTÁTICA ---
+                if (section.dynamicSubsections && section.dynamicSubsections.length > 0) {
+                    section.dynamicSubsections.forEach(sub => {
+                        const subWrapper = document.createElement('div');
+                        subWrapper.className = 'dynamic-subsection-wrapper';
+                        subWrapper.style.marginTop = '15px';
+                        subWrapper.style.borderLeft = '2px solid #4dabf7';
+                        subWrapper.style.paddingLeft = '10px';
+
+                        // Span para numeración de subsección
+                        const subNumberSpan = document.createElement('span');
+                        subNumberSpan.className = 'subsection-number';
+                        subNumberSpan.style.color = '#4dabf7';
+                        subNumberSpan.style.marginRight = '10px';
+                        subNumberSpan.style.fontWeight = 'bold';
+
+                        const subTitleInput = document.createElement('input');
+                        subTitleInput.type = 'text';
+                        subTitleInput.className = 'dynamic-subsection-title';
+                        subTitleInput.value = sub.title;
+                        subTitleInput.placeholder = 'Título Subsección';
+                        subTitleInput.style.width = 'calc(100% - 40px)'; // Ajustar ancho
+                        subTitleInput.style.marginBottom = '5px';
+                        subTitleInput.style.background = '#333'; subTitleInput.style.color = '#fff'; subTitleInput.style.border = '1px solid #555';
+
+                        const subContentInput = document.createElement('textarea');
+                        subContentInput.className = 'dynamic-subsection-content';
+                        subContentInput.value = sub.content;
+                        subContentInput.rows = 3;
+                        subContentInput.placeholder = 'Contenido...';
+                        subContentInput.style.width = '100%';
+
+                        const btnRemoveSub = document.createElement('button');
+                        btnRemoveSub.textContent = 'Eliminar';
+                        btnRemoveSub.type = 'button';
+                        btnRemoveSub.style.background = '#ff6b6b'; btnRemoveSub.style.color = 'white'; btnRemoveSub.style.border = 'none'; btnRemoveSub.style.marginTop = '5px';
+                        btnRemoveSub.onclick = () => { subWrapper.remove(); updateLivePreview(); };
+
+                        subWrapper.appendChild(subNumberSpan); // Agregar número
+                        subWrapper.appendChild(subTitleInput); subWrapper.appendChild(subContentInput); subWrapper.appendChild(btnRemoveSub);
+                        sectionDiv.appendChild(subWrapper);
+                    });
+                }
+                // ---------------------------------------------------------------------------
+
+            } else if (section.title.includes('Resultados Esperados-Entregables')) {
+                // SECCIÓN DE ENTREGABLES
+                const options = [
+                    { value: 'unico', text: 'Único entregable' },
+                    { value: 'dos', text: 'Dos entregables' },
+                    { value: 'tres', text: 'Tres entregables' },
+                    { value: 'otros', text: 'Otros (Personalizado)' }
+                ];
+
+                const selectGroup = document.createElement('div');
+                selectGroup.style.marginBottom = '15px';
+                const label = document.createElement('label');
+                label.textContent = 'Cantidad de Entregables:';
+                label.style.display = 'block'; label.style.marginBottom = '5px'; label.style.color = '#ccc';
+                const select = document.createElement('select');
+                select.className = 'form-select';
+                select.style.width = '100%'; select.style.padding = '8px'; select.style.background = '#333'; select.style.color = '#fff'; select.style.border = '1px solid #555'; select.style.borderRadius = '4px';
+
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.text;
+                    select.appendChild(option);
+                });
+
+                // Restaurar selección previa si existe (guardada en section.deliverablesType por ejemplo)
+                select.value = section.deliverablesType || 'unico';
+
+                selectGroup.appendChild(label);
+                selectGroup.appendChild(select);
+                sectionDiv.appendChild(selectGroup);
+
+                const deliverablesContainer = document.createElement('div');
+                deliverablesContainer.className = 'deliverables-container';
+                sectionDiv.appendChild(deliverablesContainer);
+
+                const renderDeliverableRow = (index, defaultTitle = '', defaultDesc = '', defaultDeadline = '') => {
+                    const row = document.createElement('div');
+                    row.className = 'deliverable-input-group';
+                    row.innerHTML = `
+                        <label>Entregable ${index + 1}:</label>
+                        <input type="text" class="del-title" value="${defaultTitle}" placeholder="Nombre del entregable (Ej: Primer entregable)">
+                        <label>Descripción:</label>
+                        <textarea class="del-desc" rows="2" placeholder="Descripción del entregable">${defaultDesc}</textarea>
+                        <label>Plazo:</label>
+                        <input type="text" class="del-deadline" value="${defaultDeadline}" placeholder="Plazo (Ej: Hasta los 30 días...)">
+                        <button type="button" class="btn-remove-deliverable" style="display: none;">Eliminar</button>
+                    `;
+
+                    // Event listeners para actualizar preview
+                    row.querySelectorAll('input, textarea').forEach(input => {
+                        input.addEventListener('input', updateLivePreview);
+                    });
+
+                    // Botón eliminar (solo visible en modo 'otros')
+                    row.querySelector('.btn-remove-deliverable').onclick = () => {
+                        row.remove();
+                        updateLivePreview();
+                    };
+
+                    return row;
+                };
+
+                const updateDeliverablesUI = () => {
+                    deliverablesContainer.innerHTML = '';
+                    const type = select.value;
+
+                    let rowsData = [];
+                    const defaultDesc = 'Informe sobre las actividades realizadas';
+
+                    if (section.deliverables && section.deliverablesType === type && section.deliverables.length > 0) {
+                        rowsData = section.deliverables;
+                    } else if (type === 'unico') {
+                        rowsData.push({ title: 'Único entregable', desc: defaultDesc, deadline: 'Hasta los 30 días calendario del inicio del servicio' });
+                    } else if (type === 'dos') {
+                        rowsData.push({ title: 'Primer entregable', desc: defaultDesc, deadline: 'Hasta los 30 días calendario del inicio del servicio' });
+                        rowsData.push({ title: 'Segundo entregable', desc: defaultDesc, deadline: 'Hasta los 60 días calendario del inicio del servicio' });
+                    } else if (type === 'tres') {
+                        rowsData.push({ title: 'Primer entregable', desc: defaultDesc, deadline: 'Hasta los 30 días calendario del inicio del servicio' });
+                        rowsData.push({ title: 'Segundo entregable', desc: defaultDesc, deadline: 'Hasta los 60 días calendario del inicio del servicio' });
+                        rowsData.push({ title: 'Tercer entregable', desc: defaultDesc, deadline: 'Hasta los 90 días calendario del inicio del servicio' });
+                    } else if (type === 'otros') {
+                        // En 'otros', permitimos agregar manualmente. Iniciamos con 1 vacío.
+                        rowsData.push({ title: '', desc: '', deadline: '' });
+                    }
+
+                    section.deliverablesType = type;
+
+                    rowsData.forEach((data, idx) => {
+                        const row = renderDeliverableRow(idx, data.title, data.desc, data.deadline);
+                        if (type === 'otros') {
+                            row.querySelector('.btn-remove-deliverable').style.display = 'block';
+                        }
+                        deliverablesContainer.appendChild(row);
+                    });
+
+                    if (type === 'otros') {
+                        const btnAdd = document.createElement('button');
+                        btnAdd.className = 'btn-add-deliverable';
+                        btnAdd.textContent = '+ Agregar Entregable';
+                        btnAdd.onclick = () => {
+                            const newRow = renderDeliverableRow(deliverablesContainer.querySelectorAll('.deliverable-input-group').length);
+                            newRow.querySelector('.btn-remove-deliverable').style.display = 'block';
+                            deliverablesContainer.insertBefore(newRow, btnAdd);
+                            updateLivePreview();
+                        };
+                        deliverablesContainer.appendChild(btnAdd);
+                    }
+                    updateLivePreview();
+                };
+
+                select.addEventListener('change', updateDeliverablesUI);
+                // Inicializar (usando setTimeout para asegurar que el DOM esté listo si es necesario, aunque aquí es síncrono)
+                updateDeliverablesUI();
+
             } else {
                 // Fallback normal
                 sectionDiv.appendChild(createTextInput(`content_${section.id}`, 'Contenido:', section.content, true));
+
+                // --- RENDERIZAR SUBSECCIONES DINÁMICAS (FALLBACK) ---
+                if (section.dynamicSubsections && section.dynamicSubsections.length > 0) {
+                    section.dynamicSubsections.forEach(sub => {
+                        const subWrapper = document.createElement('div');
+                        subWrapper.className = 'dynamic-subsection-wrapper';
+                        subWrapper.style.marginTop = '15px';
+                        subWrapper.style.borderLeft = '2px solid #4dabf7';
+                        subWrapper.style.paddingLeft = '10px';
+
+                        // Span para numeración de subsección
+                        const subNumberSpan = document.createElement('span');
+                        subNumberSpan.className = 'subsection-number';
+                        subNumberSpan.style.color = '#4dabf7';
+                        subNumberSpan.style.marginRight = '10px';
+                        subNumberSpan.style.fontWeight = 'bold';
+
+                        const subTitleInput = document.createElement('input');
+                        subTitleInput.type = 'text';
+                        subTitleInput.className = 'dynamic-subsection-title';
+                        subTitleInput.value = sub.title;
+                        subTitleInput.placeholder = 'Título Subsección';
+                        subTitleInput.style.width = 'calc(100% - 40px)'; // Ajustar ancho
+                        subTitleInput.style.marginBottom = '5px';
+                        subTitleInput.style.background = '#333'; subTitleInput.style.color = '#fff'; subTitleInput.style.border = '1px solid #555';
+
+                        const subContentInput = document.createElement('textarea');
+                        subContentInput.className = 'dynamic-subsection-content';
+                        subContentInput.value = sub.content;
+                        subContentInput.rows = 3;
+                        subContentInput.placeholder = 'Contenido...';
+                        subContentInput.style.width = '100%';
+
+                        const btnRemoveSub = document.createElement('button');
+                        btnRemoveSub.textContent = 'Eliminar';
+                        btnRemoveSub.type = 'button';
+                        btnRemoveSub.style.background = '#ff6b6b'; btnRemoveSub.style.color = 'white'; btnRemoveSub.style.border = 'none'; btnRemoveSub.style.marginTop = '5px';
+                        btnRemoveSub.onclick = () => { subWrapper.remove(); updateLivePreview(); };
+
+                        subWrapper.appendChild(subNumberSpan); // Agregar número
+                        subWrapper.appendChild(subTitleInput); subWrapper.appendChild(subContentInput); subWrapper.appendChild(btnRemoveSub);
+                        sectionDiv.appendChild(subWrapper);
+                    });
+                }
+                // ----------------------------------------------------
             }
 
-            // Botón "+" para agregar contenido extra (Menú Despegable)
+            // --- Lógica Botón "+" Interno (Simplificado) ---
             const btnAdd = document.createElement('button');
             btnAdd.className = 'btn-add-floating';
             btnAdd.textContent = '+';
             btnAdd.type = 'button';
-            btnAdd.title = 'Agregar contenido';
+            btnAdd.title = 'Agregar Sub-sección'; // Tooltip simple
 
-            // Contenedor del menú de opciones (oculto por defecto)
-            const optionsMenu = document.createElement('div');
-            optionsMenu.className = 'add-options-menu';
-            optionsMenu.style.display = 'none';
-            optionsMenu.style.marginTop = '5px';
-            optionsMenu.style.background = '#2d2d2d';
-            optionsMenu.style.border = '1px solid #444';
-            optionsMenu.style.borderRadius = '4px';
-            optionsMenu.style.padding = '5px';
-            optionsMenu.style.position = 'absolute';
-            optionsMenu.style.zIndex = '100';
-
-            // Opción 1: Agregar Subsección (x.y)
-            const btnAddSubsection = document.createElement('button');
-            btnAddSubsection.textContent = '📑 Agregar Sub-sección (x.y)';
-            btnAddSubsection.type = 'button'; // EVITAR SUBMIT
-            btnAddSubsection.style.display = 'block';
-            btnAddSubsection.style.width = '100%';
-            btnAddSubsection.style.textAlign = 'left';
-            btnAddSubsection.style.background = 'transparent';
-            btnAddSubsection.style.color = '#e0e0e0';
-            btnAddSubsection.style.border = 'none';
-            btnAddSubsection.style.padding = '8px';
-            btnAddSubsection.style.cursor = 'pointer';
-            btnAddSubsection.onmouseover = () => btnAddSubsection.style.background = '#444';
-            btnAddSubsection.onmouseout = () => btnAddSubsection.style.background = 'transparent';
-
-            btnAddSubsection.onclick = (e) => {
-                e.preventDefault(); // Doble seguridad
-                e.stopPropagation();
-                optionsMenu.style.display = 'none';
-
-                // Crear Wrapper de Subsección
-                const subWrapper = document.createElement('div');
-                subWrapper.className = 'dynamic-subsection-wrapper';
-                subWrapper.style.marginTop = '15px';
-                subWrapper.style.borderLeft = '3px solid #4dabf7';
-                subWrapper.style.paddingLeft = '15px';
-                subWrapper.style.background = 'rgba(77, 171, 247, 0.05)';
-                subWrapper.style.padding = '10px';
-                subWrapper.style.borderRadius = '4px';
-
-                // Input Título
-                const titleInput = document.createElement('input');
-                titleInput.type = 'text';
-                titleInput.className = 'dynamic-subsection-title';
-                titleInput.placeholder = 'Título de la Sub-sección (ej. Entregables)';
-                titleInput.style.fontWeight = 'bold';
-                titleInput.style.marginBottom = '10px';
-                titleInput.style.width = '100%';
-
-                // Textarea Contenido
-                const contentInput = document.createElement('textarea');
-                contentInput.className = 'dynamic-subsection-content';
-                contentInput.placeholder = 'Contenido de la sub-sección...';
-                contentInput.rows = 3;
-                contentInput.style.width = '100%';
-
-                // Botón Eliminar
-                const btnRemove = document.createElement('button');
-                btnRemove.textContent = 'Eliminar Sub-sección';
-                btnRemove.type = 'button'; // EVITAR SUBMIT
-                btnRemove.style.background = '#ff6b6b';
-                btnRemove.style.color = 'white';
-                btnRemove.style.border = 'none';
-                btnRemove.style.padding = '5px 10px';
-                btnRemove.style.marginTop = '5px';
-                btnRemove.style.cursor = 'pointer';
-                btnRemove.onclick = () => {
-                    subWrapper.remove();
-                    updateLivePreview();
-                };
-
-                subWrapper.appendChild(titleInput);
-                subWrapper.appendChild(contentInput);
-                subWrapper.appendChild(btnRemove);
-
-                // Insertar antes del botón +
-                contentWrapper.insertBefore(subWrapper, btnContainer); // Insertar antes del contenedor del botón
-                updateLivePreview();
-            };
-
-            // Opción 2: Agregar Cláusula (Título + Contenido)
-            const btnAddClause = document.createElement('button');
-            btnAddClause.textContent = '📝 Agregar Cláusula (Título + Texto)';
-            btnAddClause.type = 'button'; // EVITAR SUBMIT
-            btnAddClause.style.display = 'block';
-            btnAddClause.style.width = '100%';
-            btnAddClause.style.textAlign = 'left';
-            btnAddClause.style.background = 'transparent';
-            btnAddClause.style.color = '#e0e0e0';
-            btnAddClause.style.border = 'none';
-            btnAddClause.style.padding = '8px';
-            btnAddClause.style.cursor = 'pointer';
-            btnAddClause.onmouseover = () => btnAddClause.style.background = '#444';
-            btnAddClause.onmouseout = () => btnAddClause.style.background = 'transparent';
-
-            btnAddClause.onclick = (e) => {
+            // Acción directa: Agregar Sub-sección
+            btnAdd.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                optionsMenu.style.display = 'none';
 
-                // Crear Wrapper de Cláusula
-                const clauseWrapper = document.createElement('div');
-                clauseWrapper.className = 'dynamic-clause-wrapper';
-                clauseWrapper.style.marginTop = '15px';
-                clauseWrapper.style.borderLeft = '2px solid #666';
-                clauseWrapper.style.paddingLeft = '10px';
-                clauseWrapper.style.background = 'rgba(255, 255, 255, 0.05)';
-                clauseWrapper.style.padding = '10px';
-                clauseWrapper.style.borderRadius = '4px';
-
-                // Checkbox Numeración Automática
-                const numberingContainer = document.createElement('div');
-                numberingContainer.style.marginBottom = '5px';
-                numberingContainer.style.display = 'flex';
-                numberingContainer.style.alignItems = 'center';
-
-                const numberingCheckbox = document.createElement('input');
-                numberingCheckbox.type = 'checkbox';
-                numberingCheckbox.className = 'dynamic-clause-numbered';
-                numberingCheckbox.checked = true; // Por defecto numerado
-                numberingCheckbox.id = `num_chk_${Date.now()}`;
-
-                const numberingLabel = document.createElement('label');
-                numberingLabel.htmlFor = numberingCheckbox.id;
-                numberingLabel.textContent = 'Numerar automáticamente (x.y)';
-                numberingLabel.style.marginLeft = '5px';
-                numberingLabel.style.fontSize = '0.9em';
-                numberingLabel.style.color = '#ccc';
-                numberingLabel.style.cursor = 'pointer';
-
-                numberingContainer.appendChild(numberingCheckbox);
-                numberingContainer.appendChild(numberingLabel);
-
-                // Input Título (Opcional pero recomendado)
-                const titleInput = document.createElement('input');
-                titleInput.type = 'text';
-                titleInput.className = 'dynamic-clause-title';
-                titleInput.placeholder = 'Título de la Cláusula (ej. Penalidades)';
-                titleInput.style.fontWeight = 'bold';
-                titleInput.style.marginBottom = '5px';
-                titleInput.style.width = '100%';
-                titleInput.style.border = '1px solid #555';
-                titleInput.style.background = '#333';
-                titleInput.style.color = '#fff';
-                titleInput.style.padding = '5px';
-
-                // Textarea Contenido
-                const contentInput = document.createElement('textarea');
-                contentInput.className = 'dynamic-clause-content';
-                contentInput.rows = 3;
-                contentInput.placeholder = 'Contenido de la cláusula...';
-                contentInput.style.width = '100%';
-                contentInput.style.marginTop = '5px';
-
-                // Botón Eliminar
-                const btnRemove = document.createElement('button');
-                btnRemove.textContent = 'Eliminar';
-                btnRemove.type = 'button';
-                btnRemove.style.background = '#ff6b6b';
-                btnRemove.style.color = 'white';
-                btnRemove.style.border = 'none';
-                btnRemove.style.padding = '5px 10px';
-                btnRemove.style.marginTop = '5px';
-                btnRemove.style.cursor = 'pointer';
-                btnRemove.onclick = () => {
-                    clauseWrapper.remove();
-                    updateLivePreview();
-                };
-
-                clauseWrapper.appendChild(numberingContainer);
-                clauseWrapper.appendChild(titleInput);
-                clauseWrapper.appendChild(contentInput);
-                clauseWrapper.appendChild(btnRemove);
-
-                contentWrapper.insertBefore(clauseWrapper, btnContainer);
-                updateLivePreview();
-            };
-
-            optionsMenu.appendChild(btnAddSubsection);
-            optionsMenu.appendChild(btnAddClause);
-
-            // Toggle Menú
-            btnAdd.onclick = (e) => {
-                e.stopPropagation();
-                const isVisible = optionsMenu.style.display === 'block';
-                optionsMenu.style.display = isVisible ? 'none' : 'block';
-            };
-
-            // Cerrar menú al hacer click fuera
-            document.addEventListener('click', () => {
-                optionsMenu.style.display = 'none';
-            });
-
-            // Wrapper para botón y menú
-            const btnContainer = document.createElement('div');
-            btnContainer.style.position = 'relative';
-            btnContainer.style.marginTop = '15px';
-
-            btnContainer.appendChild(btnAdd);
-            btnContainer.appendChild(optionsMenu);
-            contentWrapper.appendChild(btnContainer);
-
-            accordionItem.appendChild(accordionContent);
-            formElement.appendChild(accordionItem);
-        });
-
-        // ==========================================
-        // BOTÓN: AGREGAR NUEVA SECCIÓN PRINCIPAL
-        // ==========================================
-        const btnAddMainSection = document.createElement('button');
-        btnAddMainSection.textContent = '➕ Agregar Nueva Sección Principal';
-        btnAddMainSection.className = 'btn-primary';
-        btnAddMainSection.style.marginTop = '20px';
-        btnAddMainSection.style.marginBottom = '20px';
-        btnAddMainSection.style.width = '100%';
-        btnAddMainSection.style.background = '#28a745';
-        btnAddMainSection.style.border = 'none';
-        btnAddMainSection.style.padding = '12px';
-        btnAddMainSection.style.fontSize = '1em';
-        btnAddMainSection.style.cursor = 'pointer';
-        btnAddMainSection.style.borderRadius = '5px';
-        btnAddMainSection.type = 'button';
-
-        btnAddMainSection.onmouseover = () => btnAddMainSection.style.background = '#218838';
-        btnAddMainSection.onmouseout = () => btnAddMainSection.style.background = '#28a745';
-
-        // ==========================================
-        // LÓGICA MODAL NUEVA SECCIÓN
-        // ==========================================
-        const modalNuevaSeccion = document.getElementById('modalNuevaSeccion');
-        const btnGuardarNuevaSeccion = document.getElementById('btnGuardarNuevaSeccion');
-        const closeModalSeccion = document.getElementById('closeModalSeccion');
-        const inputNewSectionTitle = document.getElementById('newSectionTitle');
-        const inputNewSectionContent = document.getElementById('newSectionContent');
-
-        // Abrir Modal
-        btnAddMainSection.onclick = () => {
-            inputNewSectionTitle.value = '';
-            inputNewSectionContent.value = '';
-            modalNuevaSeccion.style.display = 'block';
-            inputNewSectionTitle.focus();
-        };
-
-        // Cerrar Modal
-        closeModalSeccion.onclick = () => {
-            modalNuevaSeccion.style.display = 'none';
-        };
-
-        window.onclick = (event) => {
-            if (event.target == modalNuevaSeccion) {
-                modalNuevaSeccion.style.display = 'none';
-            }
-            if (event.target == document.getElementById('modalClausula')) {
-                document.getElementById('modalClausula').style.display = 'none';
-            }
-        };
-
-        // Guardar Nueva Sección desde Modal
-        btnGuardarNuevaSeccion.onclick = () => {
-            const title = inputNewSectionTitle.value.trim();
-            const contentText = inputNewSectionContent.value.trim();
-
-            if (!title) {
-                alert('Por favor, ingrese un título para la sección.');
-                return;
-            }
-
-            // Crear Estructura de Acordeón
-            const accordionItem = document.createElement('div');
-            accordionItem.className = 'accordion-item dynamic-main-section';
-
-            // Header
-            const header = document.createElement('div');
-            header.className = 'accordion-header';
-
-            const titleInput = document.createElement('input');
-            titleInput.type = 'text';
-            titleInput.className = 'dynamic-main-section-title';
-            titleInput.value = title;
-            titleInput.style.background = '#333';
-            titleInput.style.border = '1px solid #555';
-            titleInput.style.color = '#fff';
-            titleInput.style.padding = '5px';
-            titleInput.style.fontSize = '1em';
-            titleInput.style.fontWeight = 'bold';
-            titleInput.style.width = '70%';
-            titleInput.onclick = (e) => e.stopPropagation();
-
-            const btnDeleteSection = document.createElement('button');
-            btnDeleteSection.textContent = '🗑️';
-            btnDeleteSection.title = 'Eliminar Sección';
-            btnDeleteSection.type = 'button';
-            btnDeleteSection.style.background = 'transparent';
-            btnDeleteSection.style.border = 'none';
-            btnDeleteSection.style.cursor = 'pointer';
-            btnDeleteSection.style.marginLeft = '10px';
-            btnDeleteSection.onclick = (e) => {
-                e.stopPropagation();
-                if (confirm('¿Eliminar esta sección completa?')) {
-                    accordionItem.remove();
-                    updateLivePreview();
-                }
-            };
-
-            // Checkbox No Aplica (Para paridad con secciones estándar)
-            const noAplicaContainer = document.createElement('div');
-            noAplicaContainer.style.display = 'flex';
-            noAplicaContainer.style.alignItems = 'center';
-            noAplicaContainer.style.marginLeft = '15px';
-            noAplicaContainer.onclick = (e) => e.stopPropagation();
-
-            const noAplicaCheck = document.createElement('input');
-            noAplicaCheck.type = 'checkbox';
-            noAplicaCheck.id = `noAplica_dynamic_${Date.now()}`;
-            noAplicaCheck.style.marginRight = '5px';
-            noAplicaCheck.onchange = () => updateLivePreview();
-
-            const noAplicaLabel = document.createElement('label');
-            noAplicaLabel.htmlFor = noAplicaCheck.id;
-            noAplicaLabel.textContent = 'No Aplica';
-            noAplicaLabel.style.fontSize = '0.9em';
-            noAplicaLabel.style.color = '#ccc';
-            noAplicaLabel.style.cursor = 'pointer';
-
-            noAplicaContainer.appendChild(noAplicaCheck);
-            noAplicaContainer.appendChild(noAplicaLabel);
-
-            const icon = document.createElement('span');
-            icon.className = 'accordion-icon';
-            icon.textContent = '▼';
-
-            const headerContent = document.createElement('div');
-            headerContent.style.display = 'flex';
-            headerContent.style.alignItems = 'center';
-            headerContent.style.flex = '1';
-            headerContent.appendChild(titleInput);
-            headerContent.appendChild(noAplicaContainer);
-            headerContent.appendChild(btnDeleteSection);
-
-            header.appendChild(headerContent);
-            header.appendChild(icon);
-
-            // Content
-            const content = document.createElement('div');
-            content.className = 'accordion-content';
-            // FORZAR APERTURA INICIAL
-            content.style.maxHeight = 'none';
-            content.style.opacity = '1';
-            content.classList.add('open');
-            icon.style.transform = 'rotate(180deg)';
-
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'section-content-wrapper';
-            contentWrapper.style.padding = '15px 0';
-
-            // Textarea Principal (Pre-llenado)
-            const mainContentInput = document.createElement('textarea');
-            mainContentInput.className = 'dynamic-main-section-content';
-            mainContentInput.rows = 4;
-            mainContentInput.value = contentText;
-            mainContentInput.placeholder = 'Contenido principal...';
-            mainContentInput.style.width = '100%';
-            mainContentInput.style.marginBottom = '15px';
-            mainContentInput.style.padding = '10px';
-            mainContentInput.style.background = '#252525';
-            mainContentInput.style.color = '#e0e0e0';
-            mainContentInput.style.border = '1px solid #444';
-            mainContentInput.style.borderRadius = '4px';
-
-            contentWrapper.appendChild(mainContentInput);
-
-            // --- Lógica Botón "+" Interno ---
-            const btnAdd = document.createElement('button');
-            btnAdd.className = 'btn-add-floating';
-            btnAdd.textContent = '+';
-            btnAdd.type = 'button';
-
-            const optionsMenu = document.createElement('div');
-            optionsMenu.className = 'add-options-menu';
-            optionsMenu.style.display = 'none';
-            optionsMenu.style.marginTop = '5px';
-            optionsMenu.style.background = '#2d2d2d';
-            optionsMenu.style.border = '1px solid #444';
-            optionsMenu.style.borderRadius = '4px';
-            optionsMenu.style.padding = '5px';
-            optionsMenu.style.position = 'absolute';
-            optionsMenu.style.zIndex = '100';
-
-            // Opción Subsección
-            const btnAddSubsection = document.createElement('button');
-            btnAddSubsection.textContent = '📑 Agregar Sub-sección (x.y)';
-            btnAddSubsection.type = 'button';
-            btnAddSubsection.style.display = 'block';
-            btnAddSubsection.style.width = '100%';
-            btnAddSubsection.style.textAlign = 'left';
-            btnAddSubsection.style.background = 'transparent';
-            btnAddSubsection.style.color = '#e0e0e0';
-            btnAddSubsection.style.border = 'none';
-            btnAddSubsection.style.padding = '8px';
-            btnAddSubsection.style.cursor = 'pointer';
-            btnAddSubsection.onmouseover = () => btnAddSubsection.style.background = '#444';
-            btnAddSubsection.onmouseout = () => btnAddSubsection.style.background = 'transparent';
-
-            btnAddSubsection.onclick = (e) => {
-                e.preventDefault(); e.stopPropagation(); optionsMenu.style.display = 'none';
                 const subWrapper = document.createElement('div');
                 subWrapper.className = 'dynamic-subsection-wrapper';
                 subWrapper.style.marginTop = '15px';
                 subWrapper.style.borderLeft = '2px solid #4dabf7';
                 subWrapper.style.paddingLeft = '10px';
 
+                // Span para numeración de subsección
+                const subNumberSpan = document.createElement('span');
+                subNumberSpan.className = 'subsection-number';
+                subNumberSpan.style.color = '#4dabf7';
+                subNumberSpan.style.marginRight = '10px';
+                subNumberSpan.style.fontWeight = 'bold';
+
                 const subTitleInput = document.createElement('input');
                 subTitleInput.type = 'text';
                 subTitleInput.className = 'dynamic-subsection-title';
                 subTitleInput.placeholder = 'Título Subsección';
-                subTitleInput.style.width = '100%';
+                subTitleInput.style.width = 'calc(100% - 40px)'; // Ajustar ancho
                 subTitleInput.style.marginBottom = '5px';
                 subTitleInput.style.background = '#333'; subTitleInput.style.color = '#fff'; subTitleInput.style.border = '1px solid #555';
 
@@ -1129,105 +974,320 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnRemoveSub.style.background = '#ff6b6b'; btnRemoveSub.style.color = 'white'; btnRemoveSub.style.border = 'none'; btnRemoveSub.style.marginTop = '5px';
                 btnRemoveSub.onclick = () => { subWrapper.remove(); updateLivePreview(); };
 
+                btnRemoveSub.onclick = () => { subWrapper.remove(); updateLivePreview(); };
+
+                subWrapper.appendChild(subNumberSpan); // Agregar número
                 subWrapper.appendChild(subTitleInput); subWrapper.appendChild(subContentInput); subWrapper.appendChild(btnRemoveSub);
                 contentWrapper.insertBefore(subWrapper, btnContainer);
                 updateLivePreview();
             };
 
-            // Opción Cláusula
-            const btnAddClause = document.createElement('button');
-            btnAddClause.textContent = '📝 Agregar Cláusula (Título + Texto)';
-            btnAddClause.type = 'button';
-            btnAddClause.style.display = 'block';
-            btnAddClause.style.width = '100%';
-            btnAddClause.style.textAlign = 'left';
-            btnAddClause.style.background = 'transparent';
-            btnAddClause.style.color = '#e0e0e0';
-            btnAddClause.style.border = 'none';
-            btnAddClause.style.padding = '8px';
-            btnAddClause.style.cursor = 'pointer';
-            btnAddClause.onmouseover = () => btnAddClause.style.background = '#444';
-            btnAddClause.onmouseout = () => btnAddClause.style.background = 'transparent';
-
-            btnAddClause.onclick = (e) => {
-                e.preventDefault(); e.stopPropagation(); optionsMenu.style.display = 'none';
-                const clauseWrapper = document.createElement('div');
-                clauseWrapper.className = 'dynamic-clause-wrapper';
-                clauseWrapper.style.marginTop = '15px';
-                clauseWrapper.style.borderLeft = '2px solid #666';
-                clauseWrapper.style.paddingLeft = '10px';
-                clauseWrapper.style.background = 'rgba(255, 255, 255, 0.05)';
-                clauseWrapper.style.padding = '10px';
-
-                const numContainer = document.createElement('div');
-                numContainer.style.marginBottom = '5px'; numContainer.style.display = 'flex'; numContainer.style.alignItems = 'center';
-                const numCheck = document.createElement('input');
-                numCheck.type = 'checkbox'; numCheck.className = 'dynamic-clause-numbered'; numCheck.checked = true; numCheck.id = `chk_${Date.now()}`;
-                const numLabel = document.createElement('label');
-                numLabel.htmlFor = numCheck.id; numLabel.textContent = 'Numerar (x.y)'; numLabel.style.marginLeft = '5px'; numLabel.style.color = '#ccc';
-                numContainer.appendChild(numCheck); numContainer.appendChild(numLabel);
-
-                const clTitleInput = document.createElement('input');
-                clTitleInput.type = 'text'; clTitleInput.className = 'dynamic-clause-title'; clTitleInput.placeholder = 'Título Cláusula'; clTitleInput.style.width = '100%'; clTitleInput.style.marginBottom = '5px'; clTitleInput.style.background = '#333'; clTitleInput.style.color = '#fff'; clTitleInput.style.border = '1px solid #555';
-
-                const clContentInput = document.createElement('textarea');
-                clContentInput.className = 'dynamic-clause-content'; clContentInput.rows = 3; clContentInput.placeholder = 'Contenido...'; clContentInput.style.width = '100%';
-
-                const btnRemoveCl = document.createElement('button');
-                btnRemoveCl.textContent = 'Eliminar';
-                btnRemoveCl.type = 'button'; btnRemoveCl.style.background = '#ff6b6b'; btnRemoveCl.style.color = 'white'; btnRemoveCl.style.border = 'none'; btnRemoveCl.style.marginTop = '5px';
-                btnRemoveCl.onclick = () => { clauseWrapper.remove(); updateLivePreview(); };
-
-                clauseWrapper.appendChild(numContainer); clauseWrapper.appendChild(clTitleInput); clauseWrapper.appendChild(clContentInput); clauseWrapper.appendChild(btnRemoveCl);
-                contentWrapper.insertBefore(clauseWrapper, btnContainer);
-                updateLivePreview();
-            };
-
-            optionsMenu.appendChild(btnAddSubsection);
-            optionsMenu.appendChild(btnAddClause);
-
-            btnAdd.onclick = (e) => { e.stopPropagation(); optionsMenu.style.display = optionsMenu.style.display === 'block' ? 'none' : 'block'; };
-            document.addEventListener('click', () => optionsMenu.style.display = 'none');
-
             const btnContainer = document.createElement('div');
             btnContainer.style.position = 'relative';
             btnContainer.style.marginTop = '15px';
             btnContainer.appendChild(btnAdd);
-            btnContainer.appendChild(optionsMenu);
             contentWrapper.appendChild(btnContainer);
             // --- Fin Lógica Botón "+" ---
+            accordionItem.appendChild(accordionContent);
+            formElement.appendChild(accordionItem);
+        });
 
-            content.appendChild(contentWrapper);
-            accordionItem.appendChild(header);
-            accordionItem.appendChild(content);
+        // ==========================================
+        // LÓGICA DE INSERCIÓN DE SECCIONES (TIPO TEMPLATE BUILDER)
+        // ==========================================
 
-            // Lógica Acordeón
-            header.addEventListener('click', () => {
-                const isOpen = content.classList.contains('open');
-                if (isOpen) {
-                    content.classList.remove('open');
-                    content.style.maxHeight = '0';
-                    content.style.opacity = '0';
-                    icon.style.transform = 'rotate(0deg)';
+        // ==========================================
+        // FUNCIÓN DE SINCRONIZACIÓN DE ESTADO (CRÍTICO PARA PERSISTENCIA)
+        // ==========================================
+        function syncFormStateToData() {
+            // Recorrer todos los items del acordeón y actualizar globalParsedSections
+            const accordionItems = document.querySelectorAll('.accordion-item');
+
+            accordionItems.forEach((item, index) => {
+                // Omitir sección de datos generales si está en el mismo contenedor (aunque usualmente tiene ID específico)
+                if (item.id === 'accordion-general_data') return;
+
+                // Encontrar el objeto de datos correspondiente
+                // Nota: El índice en el DOM debería corresponder al índice en globalParsedSections
+                // siempre y cuando no haya elementos extraños.
+                // Como insertamos divisores, el índice del item en accordionItems (que solo selecciona .accordion-item)
+                // debería coincidir con globalParsedSections[index].
+
+                const sectionData = globalParsedSections[index];
+                if (!sectionData) return;
+
+                // 1. Sincronizar Título
+                const headerInput = item.querySelector('.dynamic-main-section-title');
+                if (headerInput) {
+                    sectionData.title = headerInput.value;
+                }
+
+                // 2. Sincronizar Contenido Principal
+                const mainContentInput = item.querySelector('.dynamic-main-section-content');
+                if (mainContentInput) {
+                    sectionData.content = mainContentInput.value;
                 } else {
-                    content.classList.add('open');
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                    content.style.opacity = '1';
-                    icon.style.transform = 'rotate(180deg)';
+                    // Intentar buscar inputs estáticos si no es dinámico
+                    const staticInput = item.querySelector(`textarea[id^="content_"]`);
+                    if (staticInput) {
+                        sectionData.content = staticInput.value;
+                    }
+                }
+
+                // 3. Sincronizar Subsecciones Dinámicas
+                // Esto es más complejo porque las subsecciones se crean en el DOM pero no tienen estructura previa en sectionData.subsecciones
+                // Necesitamos reconstruir el array de subsecciones desde el DOM.
+
+                const subWrappers = item.querySelectorAll('.dynamic-subsection-wrapper');
+                const newSubsections = [];
+
+                subWrappers.forEach(sub => {
+                    const subTitle = sub.querySelector('.dynamic-subsection-title').value;
+                    const subContent = sub.querySelector('.dynamic-subsection-content').value;
+
+                    newSubsections.push({
+                        title: subTitle,
+                        content: subContent,
+                        type: 'subsection' // Marcador para saber cómo renderizarlo después
+                    });
+                });
+
+                // 4. Sincronizar Entregables (Nuevo)
+                const deliverablesContainer = item.querySelector('.deliverables-container');
+                if (deliverablesContainer) {
+                    const typeSelect = item.querySelector('.form-select');
+                    if (typeSelect) sectionData.deliverablesType = typeSelect.value;
+
+                    const rows = deliverablesContainer.querySelectorAll('.deliverable-input-group');
+                    sectionData.deliverables = [];
+                    rows.forEach(row => {
+                        sectionData.deliverables.push({
+                            title: row.querySelector('.del-title').value,
+                            desc: row.querySelector('.del-desc').value,
+                            deadline: row.querySelector('.del-deadline').value
+                        });
+                    });
+                }
+
+                if (newSubsections.length > 0) {
+                    sectionData.dynamicSubsections = newSubsections;
+                }
+
+                // Si la sección ya tenía subsecciones estáticas, ¿qué hacemos?
+                // En el modelo actual, las secciones dinámicas empiezan vacías de subsecciones.
+                // Las secciones estáticas tienen subsecciones predefinidas.
+                // Si el usuario agrega subsecciones a una estática, se mezclan.
+                // Por simplicidad y seguridad:
+                // Si es dinámica, reemplazamos todo.
+                // Si es estática, PRESERVAMOS las estáticas y añadimos las dinámicas al final?
+                // O asumimos que las dinámicas se renderizan al final.
+
+                if (sectionData.isDynamic) {
+                    // Aseguramos que el contenido principal capturado arriba (paso 2) se mantenga
+                    // y ADEMÁS guardamos las subsecciones.
+                    sectionData.subsecciones = newSubsections;
+                } else {
+                    // Para estáticas, las subsecciones originales no se borran del DOM, 
+                    // pero las NUEVAS agregadas con el botón "+" se deben guardar.
+                    // El problema es que al re-renderizar, necesitamos saber cuáles son nuevas.
+                    // Vamos a guardar las nuevas en una propiedad 'dynamicSubsections' para no romper la estructura original
+                    sectionData.dynamicSubsections = newSubsections;
                 }
             });
+        }
 
-            // Insertar antes del botón de agregar sección
-            formElement.insertBefore(accordionItem, btnAddMainSection);
+        // Función para crear el divisor de inserción
+        function createInsertDivider(index) {
+            const divider = document.createElement('div');
+            divider.className = 'insert-divider';
+            if (index === 0) divider.classList.add('first-divider');
 
-            modalNuevaSeccion.style.display = 'none';
-            updateLivePreview();
-        };
+            const line = document.createElement('div');
+            line.className = 'insert-divider-line';
 
-        formElement.appendChild(btnAddMainSection);
+            const btn = document.createElement('div');
+            btn.className = 'insert-divider-button';
+            btn.innerHTML = '<span>+</span> Insertar Sección Aquí';
 
-        // Inicializar vista previa una vez renderizado todo
-        setTimeout(updateLivePreview, 500);
+            divider.appendChild(line);
+            divider.appendChild(btn);
+
+            divider.onclick = () => {
+                insertNewSection(index);
+            };
+
+            return divider;
+        }
+
+        // Función para insertar una nueva sección en el array global y re-renderizar
+        function insertNewSection(index) {
+            // 1. GUARDAR ESTADO ACTUAL ANTES DE HACER NADA
+            syncFormStateToData();
+
+            const newId = `section_${Date.now()}`;
+            const newSection = {
+                id: newId,
+                title: 'Nueva Sección', // Título por defecto
+                content: '',
+                instructivo: 'Ingrese el contenido de la nueva sección...',
+                subsecciones: [],
+                isDynamic: true // Flag para identificar secciones creadas dinámicamente
+            };
+
+            // Insertar en la posición específica
+            if (!globalParsedSections || globalParsedSections.length === 0) {
+                globalParsedSections = [newSection];
+            } else {
+                globalParsedSections.splice(index, 0, newSection);
+            }
+
+            // Re-renderizar todo el formulario
+            renderInteractiveForm(globalParsedSections);
+
+            // Scroll suave hacia la nueva sección
+            setTimeout(() => {
+                const newElement = document.getElementById(`accordion-${newId}`);
+                if (newElement) {
+                    newElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const titleInput = newElement.querySelector('.dynamic-main-section-title');
+                    if (titleInput) titleInput.select();
+                }
+            }, 100);
+        }
+
+        // Función para eliminar una sección del array global
+        function deleteSection(id) {
+            if (confirm('¿Eliminar esta sección completa?')) {
+                // Sincronizar antes de borrar para no perder cambios en otras secciones
+                syncFormStateToData();
+
+                globalParsedSections = globalParsedSections.filter(s => s.id !== id);
+                renderInteractiveForm(globalParsedSections);
+            }
+        }
+
+
+        // Insertar Divisor Inicial
+        formElement.appendChild(createInsertDivider(0));
+
+        parsedSections.forEach((section, index) => {
+            // ... (Lógica existente de creación de acordeón) ...
+            // PERO necesitamos interceptar la creación para inyectar el divisor DESPUÉS de cada item
+            // O mejor, inyectamos el divisor ANTES de cada item en el loop, excepto el 0 que ya lo pusimos fuera?
+            // No, el patrón es: Divisor 0, Item 0, Divisor 1, Item 1...
+
+            // Ya tenemos el accordionItem creado arriba (líneas 442-905 en el código original)
+            // Vamos a REUTILIZAR ese código pero necesitamos que renderInteractiveForm sea idempotente y limpie todo antes (ya lo hace con innerHTML = '')
+
+            // NOTA: Como estamos dentro del loop forEach original (línea 438), 
+            // el código de creación del accordionItem ya se ejecutó y se hizo appendChild.
+            // PERO, este bloque de reemplazo está ELIMINANDO el código viejo de "Agregar Botón al final".
+            // Así que necesitamos insertar los divisores ENTRE los items que ya se han ido agregando.
+
+            // ERROR DE LÓGICA EN EL PLANTEAMIENTO DE REEMPLAZO:
+            // El bloque que estoy reemplazando (907-1231) está AL FINAL de la función renderInteractiveForm, 
+            // DESPUÉS del loop forEach.
+            // El loop forEach (438-905) ya agregó todos los items al formElement.
+            // Si quiero intercalar divisores, necesito modificar el loop forEach o manipular el DOM después.
+
+            // ESTRATEGIA CORREGIDA:
+            // 1. Limpiar formElement de nuevo no es opción porque perderíamos el trabajo del loop anterior.
+            // 2. Iterar sobre los hijos actuales de formElement e insertar divisores.
+            // 3. O mejor: Modificar el loop forEach principal.
+
+            // Dado que "replace_file_content" es para un bloque contiguo, y el loop está arriba...
+            // Voy a hacer un "hotfix" post-renderizado aquí mismo.
+
+            // No puedo modificar el loop de arriba fácilmente sin reemplazar TODO el archivo o un bloque gigante.
+            // Así que voy a re-organizar el DOM aquí.
+        });
+
+        // RE-ORGANIZACIÓN DEL DOM PARA INSERTAR DIVISORES
+        // Obtener todos los items de acordeón que se acaban de agregar
+        const currentItems = Array.from(formElement.querySelectorAll('.accordion-item'));
+
+        // Limpiar el formElement (solo de los items, manteniendo botones si los hubiera, aunque aquí aun no se agregan botones finales)
+        formElement.innerHTML = '';
+
+        // Volver a agregar con divisores intercalados
+        currentItems.forEach((item, index) => {
+            // Divisor antes del item
+            formElement.appendChild(createInsertDivider(index));
+
+            // Modificar el título del item para que sea editable si es dinámico O si queremos que todos sean editables
+            // El usuario quiere "logica de template builder", donde los títulos son editables.
+            // En el código original, solo las secciones nuevas tenían input.
+            // Vamos a intentar hacer un "upgrade" visual al header aquí si es necesario, 
+            // pero por ahora respetemos lo que ya se creó.
+
+            // Sin embargo, necesitamos conectar el botón de eliminar para las secciones dinámicas
+            // que se crean via insertNewSection.
+            // En el código original, el botón de eliminar estaba dentro de la lógica de creación del modal.
+            // Ahora, al renderizar desde globalParsedSections, necesitamos que el loop principal sepa cómo renderizar una sección dinámica.
+
+            // PROBLEMA: El loop principal (líneas 438-905) no tiene lógica para renderizar inputs de título para secciones dinámicas
+            // a menos que modifiquemos ese loop.
+            // Si inserto una sección nueva en globalParsedSections, tiene {title: 'Nueva Sección'}.
+            // El loop original hará: <h3>Nueva Sección</h3>. No será editable.
+
+            // SOLUCIÓN: Necesito modificar el loop principal para soportar edición de título.
+            // Como no puedo editar el loop principal en este bloque (está fuera del rango),
+            // voy a aplicar un "parche" al elemento DOM 'item' aquí mismo.
+
+            const sectionData = globalParsedSections[index];
+            if (sectionData && (sectionData.isDynamic || sectionData.id.startsWith('section_'))) {
+                // Transformar el header estático en uno editable
+                const header = item.querySelector('.accordion-header');
+                const h3 = header.querySelector('h3');
+                if (h3) {
+                    const currentTitle = h3.textContent;
+                    h3.style.display = 'none'; // Ocultar h3
+
+                    // Crear input si no existe
+                    if (!header.querySelector('.dynamic-main-section-title')) {
+                        const titleInput = document.createElement('input');
+                        titleInput.type = 'text';
+                        titleInput.className = 'dynamic-main-section-title';
+                        titleInput.value = currentTitle;
+                        titleInput.style.width = '70%';
+                        titleInput.onclick = (e) => e.stopPropagation();
+                        titleInput.onchange = (e) => {
+                            sectionData.title = e.target.value;
+                            updateLivePreview();
+                        };
+
+                        // Insertar ANTES del h3 (que está oculto pero sigue en el DOM después del número)
+                        // Esto asegura que el orden sea: [Btn+] [Numero] [Input] [h3]
+                        if (h3) {
+                            header.insertBefore(titleInput, h3);
+                        } else {
+                            header.appendChild(titleInput);
+                        }
+
+                        // Agregar botón eliminar
+                        const btnDelete = document.createElement('button');
+                        btnDelete.textContent = '🗑️';
+                        btnDelete.className = 'btn-ghost';
+                        btnDelete.style.marginLeft = '10px';
+                        btnDelete.onclick = (e) => {
+                            e.stopPropagation();
+                            deleteSection(sectionData.id);
+                        };
+                        header.appendChild(btnDelete);
+                    }
+                }
+            }
+
+            formElement.appendChild(item);
+        });
+
+        // Divisor final
+        formElement.appendChild(createInsertDivider(currentItems.length));
+
+        // El modal ya no se usa, así que no lo re-agregamos.
+
+        updateLivePreview();
+
 
         // Contenedor de botones
         const buttonContainer = document.createElement('div');
@@ -1406,6 +1466,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Título Principal
                     const headerH3 = item.querySelector('.accordion-header h3');
                     const headerInput = item.querySelector('.dynamic-main-section-title');
+                    const sectionNumberSpan = item.querySelector('.section-number'); // Span de número en el form
 
                     let rawTitle = 'Sección';
                     if (headerH3) {
@@ -1414,7 +1475,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         rawTitle = headerInput.value.trim() || 'Nueva Sección';
                     }
 
-                    const cleanTitle = rawTitle.replace(/^\d+(\.\d+)*\s*/, '');
+                    const cleanTitle = rawTitle.replace(/^\d+(\.\d+)*\.?\s*/, '');
+
+                    // ACTUALIZAR NUMERACIÓN EN EL FORMULARIO (HEADER)
+                    if (sectionNumberSpan) {
+                        sectionNumberSpan.textContent = `${sectionCounter}.`;
+                    }
 
                     htmlContent += `<div class="doc-section">`;
                     htmlContent += `<div class="doc-section-title">${sectionCounter}. ${cleanTitle}</div>`;
@@ -1455,16 +1521,41 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const isStaticTitle = child.tagName === 'H4';
                                 const isDynamicSubWrapper = child.classList.contains('dynamic-subsection-wrapper');
                                 const isDynamicClauseWrapper = child.classList.contains('dynamic-clause-wrapper');
+                                const isDeliverablesContainer = child.classList.contains('deliverables-container');
 
-                                if (isStaticTitle) {
+                                if (isDeliverablesContainer) {
                                     flushContent();
-                                    const subCleanTitle = child.textContent.trim().replace(/^\d+(\.\d+)*\s*/, '');
+                                    let tableHtml = '<table class="deliverables-table"><thead><tr><th>Entregable</th><th>Descripción</th><th>Plazo</th></tr></thead><tbody>';
+                                    const rows = child.querySelectorAll('.deliverable-input-group');
+                                    rows.forEach(row => {
+                                        const title = row.querySelector('.del-title').value;
+                                        const desc = row.querySelector('.del-desc').value;
+                                        const deadline = row.querySelector('.del-deadline').value;
+                                        tableHtml += `<tr><td>${title}</td><td>${desc}</td><td>${deadline}</td></tr>`;
+                                    });
+                                    tableHtml += '</tbody></table>';
+                                    htmlContent += tableHtml;
+                                } else if (isStaticTitle) {
+                                    flushContent();
+                                    const subCleanTitle = child.textContent.trim().replace(/^\d+(\.\d+)*\.?\s*/, '');
+
+                                    // ACTUALIZAR NUMERACIÓN EN EL FORMULARIO (H4)
+                                    child.textContent = `${sectionCounter}.${subCounter}. ${subCleanTitle}`;
+
                                     htmlContent += `<div class="doc-subsection-title" style="margin-top:10px; margin-left:15px;">${sectionCounter}.${subCounter}. ${subCleanTitle}</div>`;
                                     subCounter++;
                                 } else if (isDynamicSubWrapper) {
                                     flushContent();
                                     const inputTitle = child.querySelector('.dynamic-subsection-title');
+                                    const subNumberSpan = child.querySelector('.subsection-number'); // Span de número
+
                                     const val = inputTitle ? inputTitle.value.trim() : 'Subsección';
+
+                                    // ACTUALIZAR NUMERACIÓN EN EL FORMULARIO (SUBSECCIÓN)
+                                    if (subNumberSpan) {
+                                        subNumberSpan.textContent = `${sectionCounter}.${subCounter}.`;
+                                    }
+
                                     if (val) {
                                         htmlContent += `<div class="doc-subsection-title" style="margin-top:10px; margin-left:15px;">${sectionCounter}.${subCounter}. ${val}</div>`;
                                         subCounter++;

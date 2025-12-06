@@ -293,8 +293,14 @@ button#nextButton {
     padding: 15px 10px;
     cursor: pointer;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
+    /* Alineado a la izquierda */
     align-items: center;
+}
+
+.accordion-icon {
+    margin-left: auto;
+    /* Empujar flecha a la derecha */
 }
 
 .accordion-header:hover {
@@ -306,6 +312,13 @@ button#nextButton {
     color: #4dabf7;
     font-size: 1.1em;
     font-weight: 500;
+    text-transform: uppercase;
+    /* Títulos en mayúsculas */
+}
+
+/* Estilos para subtítulos estáticos */
+h4 {
+    text-transform: uppercase;
 }
 
 .accordion-content {
@@ -372,9 +385,26 @@ button#nextButton {
     color: #4dabf7 !important;
     /* Azul similar a los títulos estándar */
     font-size: 1.1em !important;
-    font-weight: bold !important;
+    font-weight: 500 !important;
+    /* Match h3 font-weight */
+    /* Match h3 font-weight */
     padding: 5px !important;
+    text-align: left !important;
+    /* Alineado a la izquierda */
+    width: auto !important;
+    /* Ancho automático */
+    flex-grow: 1;
+    /* Ocupar espacio disponible */
+    /* Asegurar que ocupe el espacio para centrarse */
+    text-transform: uppercase !important;
+    /* Títulos dinámicos en mayúsculas */
     transition: all 0.2s ease;
+}
+
+/* Estilos para títulos de subsecciones y cláusulas dinámicas */
+.dynamic-subsection-title,
+.dynamic-clause-title {
+    text-transform: uppercase !important;
 }
 
 .dynamic-main-section-title:hover,
@@ -480,4 +510,153 @@ button#nextButton {
         bottom: 0;
         width: 100%;
     }
+}
+
+/* =========================================
+   NUEVO: Estilos para el Divisor de Inserción
+   ========================================= */
+.insert-divider {
+    position: relative;
+    height: 20px;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    /* Invisible por defecto */
+    transition: opacity 0.2s ease;
+    z-index: 5;
+}
+
+.insert-divider:hover {
+    opacity: 1;
+    /* Visible al pasar el mouse */
+}
+
+/* Línea horizontal */
+.insert-divider-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: rgba(77, 171, 247, 0.5);
+    /* Azul semitransparente */
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Botón central */
+.insert-divider-button {
+    position: relative;
+    z-index: 2;
+    background-color: #1e1e1e;
+    /* Mismo color de fondo del panel */
+    color: #4dabf7;
+    border: 1px solid #4dabf7;
+    border-radius: 20px;
+    padding: 2px 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.insert-divider-button:hover {
+    background-color: #4dabf7;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Ajuste para que el primer divisor sea más discreto si se desea */
+.insert-divider.first-divider {
+    margin-top: 0;
+}
+
+/* Estilos para la tabla de entregables */
+.deliverables-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+.deliverables-table th,
+.deliverables-table td {
+    border: 1px solid #444;
+    padding: 8px;
+    text-align: left;
+    color: #e0e0e0;
+}
+
+.deliverables-table th {
+    background-color: #1a252f;
+    /* Darker header */
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #4dabf7;
+    /* Blue text for headers */
+}
+
+/* Estilos para los inputs de entregables en el formulario */
+.deliverables-container {
+    margin-top: 15px;
+}
+
+.deliverable-input-group {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border-left: 3px solid #4dabf7;
+}
+
+.deliverable-input-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+    font-size: 0.85em;
+}
+
+.deliverable-input-group input,
+.deliverable-input-group textarea {
+    width: 100%;
+    background: #2b2b2b;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-family: inherit;
+}
+
+.deliverable-input-group input:focus,
+.deliverable-input-group textarea:focus {
+    border-color: #4dabf7;
+    outline: none;
+}
+
+.btn-add-deliverable {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.btn-remove-deliverable {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    float: right;
 }
